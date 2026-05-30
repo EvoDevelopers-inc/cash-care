@@ -1,5 +1,6 @@
 package evo.developers.com.cashcare.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,6 +22,9 @@ public class AnalyzeAiProfile {
 
     @JsonProperty("financial_profile")
     private FinancialProfile financialProfile;
+
+    @JsonProperty("recommended_free_pocket_pct")
+    private Double recommendedFreePocketPct;
 
     private List<String> insights;
 
@@ -53,9 +57,13 @@ public class AnalyzeAiProfile {
     @AllArgsConstructor
     public static class Category {
         @JsonProperty("category_name")
+        @JsonAlias({"name", "category", "title"})
         private String categoryName;
 
+        @JsonAlias({"value", "sum"})
         private double amount;
+
+        @JsonAlias({"share", "pct"})
         private double percentage;
     }
 
@@ -64,10 +72,16 @@ public class AnalyzeAiProfile {
     @AllArgsConstructor
     public static class SuggestedCategory {
         @JsonProperty("category_name")
+        @JsonAlias({"name", "category", "title"})
         private String categoryName;
 
+        @JsonAlias({"value", "sum"})
         private double amount;
+
+        @JsonAlias({"share", "pct"})
         private double percentage;
+
+        @JsonAlias({"why", "comment"})
         private String reason;
     }
 
@@ -76,9 +90,11 @@ public class AnalyzeAiProfile {
     @AllArgsConstructor
     public static class Subscription {
         @JsonProperty("service_name")
+        @JsonAlias({"name", "service", "title"})
         private String serviceName;
 
         @JsonProperty("estimated_monthly_amount")
+        @JsonAlias({"amount", "monthly_amount", "price"})
         private double estimatedMonthlyAmount;
     }
 

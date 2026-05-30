@@ -17,13 +17,8 @@ async function handleAuthenticatedEntry() {
     }
 
     try {
-        const profile = await CashCareApi.getProfile();
-        if (profile.init) {
-            window.location.href = "/dashboard";
-            return;
-        }
-
-        await openInitModal();
+        await CashCareApi.getProfile();
+        window.location.href = "/dashboard";
     } catch (_) {
         CashCareApi.logout();
     }
@@ -42,8 +37,8 @@ function switchTab(tabName) {
         button.classList.toggle("active", button.dataset.tab === tabName);
     });
 
-    loginForm.classList.toggle("active", tabName === "login");
-    registerForm.classList.toggle("active", tabName === "register");
+    loginForm.classList.toggle("hidden", tabName !== "login");
+    registerForm.classList.toggle("hidden", tabName !== "register");
     hideAlert("login-alert");
     hideAlert("register-alert");
 }
@@ -58,16 +53,9 @@ async function handleLogin(event) {
 
     try {
         await CashCareApi.login(login, password);
-        const profile = await CashCareApi.getProfile();
-
-        if (profile.init) {
-            window.location.href = "/dashboard";
-        } else {
-            await openInitModal();
-        }
+        window.location.href = "/dashboard";
     } catch (error) {
         showAlert("login-alert", formatError(error), "error");
-    } finally {
         setLoading(loginBtn, false, "Войти");
     }
 }
@@ -90,10 +78,9 @@ async function handleRegister(event) {
     try {
         await CashCareApi.register(payload);
         await CashCareApi.login(payload.email, payload.password);
-        await openInitModal();
+        window.location.href = "/dashboard";
     } catch (error) {
         showAlert("register-alert", formatError(error), "error");
-    } finally {
         setLoading(registerBtn, false, "Создать аккаунт");
     }
 }

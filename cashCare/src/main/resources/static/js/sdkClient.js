@@ -88,6 +88,34 @@ const CashCareApi = {
         return this.request("GET", "/api/auth/me", undefined, true);
     },
 
+    async getAnalyticsOverview() {
+        return this.request("GET", "/api/analytics/overview", undefined, true);
+    },
+
+    async runBudgetAi() {
+        return this.request("POST", "/api/analytics/ai-budget", {}, true);
+    },
+
+    async createCategory(monthlyFinancesId, nameCategory, required = false) {
+        return this.request("POST", "/api/finances/categories", {
+            monthlyFinancesId,
+            nameCategory,
+            required
+        }, true);
+    },
+
+    async updateCategory(id, payload) {
+        return this.request("PUT", `/api/finances/categories/${id}`, payload, true);
+    },
+
+    async deleteCategory(id) {
+        return this.request("DELETE", `/api/finances/categories/${id}`, undefined, true);
+    },
+
+    async updateMonthlyFinances(id, payload) {
+        return this.request("PUT", `/api/finances/monthly/${id}`, payload, true);
+    },
+
     async getInitSetup() {
         return this.request("GET", "/api/finances/monthly/init/setup", undefined, true);
     },
@@ -106,11 +134,27 @@ const CashCareApi = {
             headers.Authorization = `Bearer ${token}`;
         }
 
-        const response = await fetch("/api/statements/upload", {
-            method: "POST",
-            headers,
-            body: formData
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+        let response;
+        try {
+            response = await fetch("/api/statements/upload", {
+                method: "POST",
+                headers,
+                body: formData,
+                signal: controller.signal
+            });
+        } catch (e) {
+            clearTimeout(timeoutId);
+            if (e.name === "AbortError") {
+                const error = new Error("AI слишком долго думал — попробуй ещё раз или загрузи короче выписку");
+                error.status = 504;
+                throw error;
+            }
+            throw e;
+        }
+        clearTimeout(timeoutId);
 
         let payload = null;
         try {

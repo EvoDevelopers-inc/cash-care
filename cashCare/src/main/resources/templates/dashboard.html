@@ -1,150 +1,379 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashCare — Профиль</title>
+    <title>CashCare — Кабинет</title>
+    <link rel="icon" type="image/png" href="/images/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/app.css">
-    <script src="/js/sdkClient.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] }
+                }
+            }
+        };
+    </script>
+    <link rel="stylesheet" href="/css/dashboard.css?v=12">
+    <script src="/js/sdkClient.js?v=6" defer></script>
     <script src="/js/common.js" defer></script>
-    <script src="/js/aiAnalysisUi.js?v=2" defer></script>
-    <script src="/js/initModal.js" defer></script>
-    <script src="/js/dashboard.js" defer></script>
+    <script src="/js/aiAnalysisUi.js?v=4" defer></script>
+    <script src="/js/initModal.js?v=7" defer></script>
+    <script src="/js/dashboard.js?v=20" defer></script>
 </head>
-<body class="page-auth">
-<div class="bg-grid"></div>
+<body class="min-h-screen font-sans text-slate-900">
 
-<div class="shell">
-    <header class="topbar">
-        <div>
-            <div class="badge badge-auth">Авторизован</div>
-            <h1 class="dashboard-title">Личный кабинет</h1>
-            <p class="dashboard-subtitle">Данные загружены с `/api/auth/me`</p>
-        </div>
-        <button id="logout-btn" type="button" class="btn btn-ghost">Выйти</button>
-    </header>
+<div class="relative min-h-screen px-4 py-5 lg:px-6">
+    <div class="dashboard-grid mx-auto grid w-full max-w-[1200px] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
 
-    <div class="card">
-        <div class="card-body">
-            <div id="profile-alert" class="alert"></div>
-            <div class="profile-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Имя</div>
-                    <div class="stat-value" id="profile-first-name">—</div>
+        <!-- ───── LEFT SIDEBAR ───── -->
+        <aside class="sidebar-left glass sticky top-5 flex h-fit flex-col gap-5 self-start rounded-3xl p-5">
+            <a href="/dashboard" class="sidebar-logo flex items-center justify-center">
+                <img src="/images/logo.png" alt="CashCare" class="block h-10 w-auto">
+            </a>
+
+            <nav class="sidebar-nav flex flex-col gap-1">
+                <a class="nav-item active" data-tab="status">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+                    Статус
+                </a>
+            </nav>
+
+            <div class="sidebar-profile rounded-2xl border border-white/60 bg-white/55 p-3">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Профиль</div>
+                <div id="profile-name" class="mt-1 truncate text-sm font-extrabold">—</div>
+                <div id="profile-email" class="truncate text-xs text-slate-500">—</div>
+            </div>
+
+            <div class="sidebar-logout mt-auto pt-2">
+                <button id="logout-btn" type="button" class="w-full rounded-lg border border-rose-200/60 bg-white/60 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">
+                    Выйти
+                </button>
+            </div>
+        </aside>
+
+        <!-- ───── MAIN ───── -->
+        <main class="space-y-5 min-w-0">
+
+            <!-- header -->
+            <div class="dash-header flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h1 class="text-2xl font-extrabold tracking-tight">Статус</h1>
+                    <p class="text-sm text-slate-600">бюджет месяца и AI-анализ выписки</p>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Фамилия</div>
-                    <div class="stat-value" id="profile-last-name">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Username</div>
-                    <div class="stat-value" id="profile-username">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Email</div>
-                    <div class="stat-value" id="profile-email">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Возраст</div>
-                    <div class="stat-value" id="profile-age">—</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Пол</div>
-                    <div class="stat-value" id="profile-gender">—</div>
+                <div class="dash-header-actions flex gap-2">
+                    <button id="reupload-pdf-btn" type="button" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold transition">
+                        ↻ Обновить AI
+                    </button>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div id="ai-summary-card" class="card hidden">
-        <div class="card-body">
-            <div class="dashboard-top">
+            <div id="profile-alert" class="alert alert-error"></div>
+
+            <!-- balance card -->
+            <section class="glass rounded-3xl p-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Баланс за месяц</div>
+                        <div id="balance-amount" class="mt-1 text-4xl font-extrabold tracking-tight">— ₽</div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <span id="balance-mood" class="mood-chip">Спокойно</span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">MoneyMood</span>
+                    </div>
+                </div>
+
+                <p id="balance-summary" class="mt-3 text-sm leading-relaxed text-slate-600">
+                    Свободно до конца месяца: <strong id="balance-free">—</strong> · доходы <strong id="balance-income">—</strong> − расходы <strong id="balance-expense">—</strong>
+                </p>
+
+                <div class="mt-5 flex flex-wrap items-center gap-2">
+                    <span class="pill income">Доходы <strong id="chip-income" class="ml-1">—</strong></span>
+                    <span class="pill expense">Расходы <strong id="chip-expense" class="ml-1">—</strong></span>
+                </div>
+            </section>
+
+            <!-- 2 cards: top categories + moneymood -->
+            <div class="grid gap-5 md:grid-cols-2">
+                <section class="glass rounded-3xl p-5">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Топ категории</div>
+                    <h2 id="top-cat-name" class="mt-1 text-2xl font-extrabold tracking-tight">—</h2>
+                    <p class="text-xs text-slate-500">что сильнее всего влияет сейчас</p>
+
+                    <div id="top-cat-list" class="mt-4 space-y-2"></div>
+                </section>
+
+                <section class="glass rounded-3xl p-5">
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">MoneyMood</div>
+                    <h2 id="mood-title" class="mt-1 text-2xl font-extrabold tracking-tight">Жду данных</h2>
+                    <p id="mood-desc" class="mt-2 text-sm leading-relaxed text-slate-600">
+                        Заполни доход и расходы — посчитаю, насколько спокойно тебе с этим бюджетом.
+                    </p>
+                </section>
+            </div>
+
+            <!-- Куда уйдут деньги -->
+            <section class="glass rounded-3xl p-5">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="text-sm font-bold">Распределение дохода</h3>
+                    <span id="dist-status" class="text-xs font-bold text-slate-500">—</span>
+                </div>
+                <p class="mt-1 text-xs text-slate-500">разбивка месячного дохода</p>
+
+                <div id="dist-bar" class="dist-bar mt-4">
+                    <div id="dist-bar-required" class="dist-seg dist-required" style="width: 0%"></div>
+                    <div id="dist-bar-optional" class="dist-seg dist-optional" style="width: 0%"></div>
+                    <div id="dist-bar-save" class="dist-seg dist-save" style="width: 0%"></div>
+                    <div id="dist-bar-free" class="dist-seg dist-free" style="width: 0%"></div>
+                </div>
+
+                <div class="mt-4 grid gap-2 sm:grid-cols-2">
+                    <div id="dist-row-required" class="dist-row">
+                        <div class="dist-dot dist-dot-required"></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="dist-row-label">Обязательные</div>
+                            <div class="dist-row-meta"><span id="dist-required-pct">0%</span> · <span id="dist-required-amount">0 ₽</span></div>
+                        </div>
+                    </div>
+                    <div id="dist-row-optional" class="dist-row">
+                        <div class="dist-dot dist-dot-optional"></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="dist-row-label">Хотелки (план)</div>
+                            <div class="dist-row-meta"><span id="dist-optional-pct">0%</span> · <span id="dist-optional-amount">0 ₽</span></div>
+                        </div>
+                    </div>
+                    <div id="dist-row-save" class="dist-row">
+                        <div class="dist-dot dist-dot-save"></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="dist-row-label">Накопления</div>
+                            <div class="dist-row-meta"><span id="dist-save-pct">0%</span> · <span id="dist-save-amount">0 ₽</span></div>
+                        </div>
+                    </div>
+                    <div id="dist-row-free" class="dist-row">
+                        <div class="dist-dot dist-dot-free"></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="dist-row-label">Свободно</div>
+                            <div class="dist-row-meta" title="буфер на спонтанные траты, ~2% дохода"><span id="dist-free-pct">0%</span> · <span id="dist-free-amount">0 ₽</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <p id="dist-tip" class="mt-4 rounded-2xl bg-emerald-50/70 px-4 py-3 text-xs leading-relaxed text-emerald-900">
+                    Заполни доход и расходы — посчитаю, сколько можно отложить.
+                </p>
+            </section>
+
+            <!-- bottom: budget editor + health -->
+            <div class="grid gap-5 md:grid-cols-2">
+                <section class="glass rounded-3xl p-5">
+                    <div class="mb-1 flex items-center justify-between">
+                        <h3 class="text-sm font-bold">Бюджет месяца</h3>
+                        <button type="button" id="add-category-btn" class="btn-ghost rounded-lg px-3 py-1.5 text-xs font-bold transition">+ Добавить</button>
+                    </div>
+                    <p class="text-xs text-slate-500">Раз в месяц закидываешь абстрактные суммы — например, «квартирка 25к».</p>
+
+                    <div class="budget-row budget-income mt-4">
+                        <div>
+                            <div class="budget-label">Доход</div>
+                            <div class="text-[11px] text-slate-500">зарплата + другое</div>
+                        </div>
+                        <div class="budget-input-wrap">
+                            <input id="budget-salary-input" type="number" min="0" step="1000" class="budget-input">
+                            <span class="budget-suffix">₽</span>
+                        </div>
+                    </div>
+
+                    <div id="budget-editor" class="mt-2 space-y-2"></div>
+
+                    <div id="new-category-form" class="hidden mt-3 rounded-2xl border border-slate-200 bg-white/60 p-3">
+                        <div class="grid grid-cols-[1fr_140px] gap-2">
+                            <input id="new-cat-name" type="text" placeholder="Название категории" class="budget-input">
+                            <input id="new-cat-amount" type="number" min="0" step="500" placeholder="0" class="budget-input">
+                        </div>
+                        <label class="mt-2 flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-700 select-none">
+                            <input id="new-cat-required" type="checkbox" class="budget-checkbox">
+                            <span>Обязательная к оплате <span class="font-normal text-slate-500">— аренда, кредит, ЖКХ</span></span>
+                        </label>
+                        <div class="mt-2 flex justify-end gap-2">
+                            <button type="button" id="cancel-new-cat" class="text-xs font-semibold text-slate-500 hover:text-slate-900">Отмена</button>
+                            <button type="button" id="save-new-cat" class="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-600">Добавить</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-3 gap-3 rounded-2xl bg-emerald-50/60 p-3 text-center text-xs">
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Доход</div>
+                            <div id="budget-sum-income" class="mt-0.5 text-sm font-extrabold text-emerald-900">—</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Расходы</div>
+                            <div id="budget-sum-expense" class="mt-0.5 text-sm font-extrabold text-emerald-900">—</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Свободно</div>
+                            <div id="budget-sum-free" class="mt-0.5 text-sm font-extrabold text-emerald-900">—</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="glass rounded-3xl p-5 max-h-64">
+                    <h3 class="text-sm font-bold">Финансовое здоровье</h3>
+                    <div class="mt-3 grid grid-cols-2 gap-3">
+                        <div class="glass-soft rounded-2xl p-3">
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Рейтинг</div>
+                            <div id="rating-label" class="mt-1 text-base font-extrabold leading-tight">—</div>
+                            <div id="rating-position" class="mt-0.5 text-[11px] font-semibold text-slate-500">— из —</div>
+                        </div>
+                        <div class="glass-soft rounded-2xl p-3">
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Подписки</div>
+                            <div id="health-subs" class="mt-1 text-lg font-extrabold">—</div>
+                        </div>
+                    </div>
+                    <p id="rating-tip" class="mt-3 text-xs leading-relaxed text-slate-600">Заполни доход и категории — увидишь, как ты держишься среди других.</p>
+                </section>
+            </div>
+
+            <section class="glass rounded-3xl p-5">
+                <div class="mb-3 flex items-baseline justify-between">
+                    <h3 class="text-sm font-bold">Расходы по категориям</h3>
+                    <span class="text-xs text-slate-500">за этот месяц</span>
+                </div>
+                <div id="all-cats-list" class="space-y-3"></div>
+            </section>
+
+            <section class="glass rounded-3xl p-5">
+                <div class="flex items-baseline justify-between">
+                    <h3 class="text-sm font-bold">Советы AI</h3>
+                    <span id="tips-meta" class="text-xs text-slate-500">из выписки</span>
+                </div>
+                <ol id="tips-list" class="mt-3 space-y-2 text-sm leading-relaxed text-slate-700">
+                    <li class="text-xs text-slate-500">Загрузи PDF-выписку — AI выделит, где можно сэкономить.</li>
+                </ol>
+            </section>
+        </main>
+
+    </div>
+</div>
+
+</body>
+</html>
+
+<!-- ─────────────────────────  INIT MODAL — STEPPER  ───────────────────────── -->
+<div id="init-modal" class="init-modal-overlay fixed inset-0 z-50 items-center justify-center p-4 backdrop-blur-md" style="background: rgba(15, 23, 42, 0.55);" aria-hidden="true">
+    <div id="init-modal-card" class="relative flex max-h-[92vh] w-full max-w-[560px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl transition-all">
+
+        <!-- header -->
+        <div class="flex-shrink-0 border-b border-slate-100 px-6 pb-4 pt-6">
+            <div class="flex items-center justify-between">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    Настройка
+                </span>
+                <span id="init-step-counter" class="text-xs font-semibold text-slate-500">Шаг 1 из 3</span>
+            </div>
+
+            <div class="mt-3 flex gap-1.5">
+                <div class="step-dot active" data-step="1"></div>
+                <div class="step-dot" data-step="2"></div>
+                <div class="step-dot" data-step="3"></div>
+            </div>
+
+            <h2 id="init-modal-title" class="mt-4 text-xl font-extrabold tracking-tight">Доход</h2>
+            <p id="init-modal-subtitle" class="mt-1 text-sm text-slate-600">Сколько денег у тебя есть в этом месяце</p>
+        </div>
+
+        <!-- body -->
+        <form id="init-form" class="flex flex-1 flex-col overflow-hidden">
+            <div class="flex-1 overflow-y-auto px-6 py-5">
+
+            <!-- STEP 1: Доход -->
+            <div id="init-step-1" class="init-step-panel space-y-4">
                 <div>
-                    <div class="badge badge-auth">AI-анализ выписки</div>
-                    <h2 class="dashboard-title">Финансовый профиль</h2>
+                    <label for="salary-input" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Зарплата / основной доход</label>
+                    <input id="salary-input" type="number" min="0" step="1000" placeholder="120000" required class="init-input">
+                </div>
+                <div>
+                    <label for="others-input" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Другие доходы <span class="font-normal text-slate-400">— необязательно</span></label>
+                    <input id="others-input" type="text" placeholder="фриланс, бонусы, ..." class="init-input">
+                </div>
+
+                <div class="rounded-2xl bg-emerald-50/70 p-4 text-xs leading-relaxed text-emerald-900">
+                    💡 Можешь указать примерные суммы — позже всё поправишь в кабинете.
                 </div>
             </div>
-            <div id="ai-summary-content"></div>
-            <div class="ai-summary-actions">
-                <button id="ai-summary-dismiss" type="button" class="btn btn-ghost">Скрыть</button>
+
+            <!-- STEP 2: Расходы -->
+            <div id="init-step-2" class="init-step-panel hidden space-y-1">
+                <p class="mb-3 text-xs text-slate-500">Распредели расходы по категориям. Пустые поля = «не планирую».</p>
+                <div id="categories-container" class="max-h-[340px] overflow-y-auto pr-1"></div>
+
+                <div class="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-emerald-50/70 p-4">
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Всего расходов</div>
+                        <div id="total-expenses" class="mt-1 text-lg font-extrabold text-emerald-900">0 ₽</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Остаток</div>
+                        <div id="balance-preview" class="mt-1 text-lg font-extrabold text-emerald-900">0 ₽</div>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <!-- STEP 3: PDF + AI -->
+            <div id="init-step-3" class="init-step-panel hidden space-y-4">
+                <p class="text-sm leading-relaxed text-slate-600">
+                    Загрузи PDF-выписку T-Bank, и AI разберёт траты, найдёт подписки и предложит новые категории.
+                </p>
+
+                <label class="file-drop-zone" for="statement-input">
+                    <input id="statement-input" type="file" accept="application/pdf,.pdf">
+                    <span class="text-2xl">📄</span>
+                    <span class="text-sm font-bold">Выбери PDF или перетащи сюда</span>
+                    <span id="statement-file-name" class="text-xs text-slate-500">Файл не выбран</span>
+                </label>
+                <div id="statement-upload-status" class="text-xs text-slate-500"></div>
+
+                <div class="rounded-2xl bg-slate-50 p-4 text-xs leading-relaxed text-slate-600">
+                    Шаг необязательный — без выписки бюджет тоже сохраним.
+                </div>
+            </div>
+
+            <!-- AI loading -->
+            <div id="ai-loading-panel" class="init-step-panel hidden space-y-3 py-6 text-center">
+                <div class="ai-loader"></div>
+                <div class="text-base font-extrabold">AI анализирует выписку</div>
+                <div id="ai-loading-step" class="text-sm text-slate-500">Читаем PDF и шлём транзакции в нейросеть...</div>
+                <div class="text-xs text-slate-400">Обычно это занимает 15–40 секунд</div>
+            </div>
+
+            <!-- AI results -->
+            <div id="ai-results-panel" class="init-step-panel hidden"></div>
+
+            <!-- alert -->
+            <div id="init-alert" class="alert mt-4"></div>
+            </div>
+
+            <!-- nav -->
+            <div class="flex flex-shrink-0 items-center justify-between border-t border-slate-100 bg-white px-6 py-4">
+                <button type="button" id="init-back-btn" class="invisible text-sm font-semibold text-slate-500 transition hover:text-slate-900">
+                    ← Назад
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="init-skip-btn" class="hidden text-sm font-semibold text-slate-500 transition hover:text-slate-900">
+                        Пропустить
+                    </button>
+                    <button type="submit" id="init-btn" class="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 active:scale-[0.99]">
+                        Далее →
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
-<div id="init-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="init-modal-title">
-        <div class="modal-header">
-            <div>
-                <div class="badge">Почти готово</div>
-                <h2 id="init-modal-title" class="section-title modal-title">Настрой бюджет на месяц</h2>
-                <p class="modal-subtitle">Укажи доход и план по категориям расходов</p>
-            </div>
-        </div>
-        <div class="card-body modal-body">
-            <form id="init-form">
-                <div id="init-form-content">
-                <div class="init-section">
-                    <h3 class="section-title">Доход</h3>
-                    <div class="field-grid two-col">
-                        <div>
-                            <label for="salary-input">Зарплата / доход</label>
-                            <input id="salary-input" type="number" min="0" step="1000" placeholder="120000" required>
-                        </div>
-                        <div>
-                            <label for="others-input">Другие доходы</label>
-                            <input id="others-input" type="text" placeholder="фриланс, бонусы">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="init-section">
-                    <h3 class="section-title">Расходы</h3>
-                    <div id="categories-container" class="category-list"></div>
-                </div>
-
-                <div class="init-section">
-                    <h3 class="section-title">Выписка PDF</h3>
-                    <p class="upload-hint">Необязательно. Загрузи выписку T-Bank — AI разберёт траты и добавит категории.</p>
-                    <label class="file-drop" for="statement-input">
-                        <input id="statement-input" type="file" accept="application/pdf,.pdf">
-                        <span class="file-drop-title">Выбери PDF или перетащи сюда</span>
-                        <span id="statement-file-name" class="file-drop-name">Файл не выбран</span>
-                    </label>
-                    <div id="statement-upload-status" class="upload-status"></div>
-                </div>
-
-                <div class="preview-panel">
-                    <div>
-                        <div class="preview-label">Всего расходов</div>
-                        <div id="total-expenses" class="preview-value">0 ₽</div>
-                    </div>
-                    <div>
-                        <div class="preview-label">Остаток</div>
-                        <div id="balance-preview" class="preview-value positive">0 ₽</div>
-                    </div>
-                </div>
-                </div>
-
-                <div id="ai-results-panel" class="ai-results hidden"></div>
-
-                <div id="ai-loading-panel" class="ai-loading hidden" aria-live="polite">
-                    <div class="ai-loading-ring"></div>
-                    <p class="ai-loading-title">AI анализирует выписку</p>
-                    <p id="ai-loading-step" class="ai-loading-step">Читаем PDF...</p>
-                </div>
-
-                <div class="init-actions">
-                    <button id="init-btn" type="submit" class="btn btn-primary">Начать пользоваться</button>
-                    <button id="init-skip-btn" type="button" class="btn btn-ghost hidden">Пропустить AI и перейти в кабинет</button>
-                </div>
-                <div id="init-alert" class="alert"></div>
-            </form>
-        </div>
-    </div>
-</div>
 </body>
 </html>

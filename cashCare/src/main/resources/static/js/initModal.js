@@ -1,12 +1,22 @@
 const initModal = document.getElementById("init-modal");
-const initModalCard = initModal?.querySelector(".modal");
 const initForm = document.getElementById("init-form");
-const initFormContent = document.getElementById("init-form-content");
+const initBtn = document.getElementById("init-btn");
+const initBackBtn = document.getElementById("init-back-btn");
+const initSkipBtn = document.getElementById("init-skip-btn");
+const initStepCounter = document.getElementById("init-step-counter");
+const initTitle = document.getElementById("init-modal-title");
+const initSubtitle = document.getElementById("init-modal-subtitle");
+
+const stepPanels = {
+    1: document.getElementById("init-step-1"),
+    2: document.getElementById("init-step-2"),
+    3: document.getElementById("init-step-3")
+};
+const stepDots = document.querySelectorAll(".step-dot");
 const aiLoadingPanel = document.getElementById("ai-loading-panel");
 const aiLoadingStep = document.getElementById("ai-loading-step");
 const aiResultsPanel = document.getElementById("ai-results-panel");
-const initBtn = document.getElementById("init-btn");
-const initSkipBtn = document.getElementById("init-skip-btn");
+
 const categoriesContainer = document.getElementById("categories-container");
 const totalExpensesEl = document.getElementById("total-expenses");
 const balanceEl = document.getElementById("balance-preview");
@@ -14,20 +24,23 @@ const statementInput = document.getElementById("statement-input");
 const statementFileName = document.getElementById("statement-file-name");
 const statementUploadStatus = document.getElementById("statement-upload-status");
 
-const INIT_MODAL_DEFAULTS = {
-    title: "Настрой бюджет на месяц",
-    subtitle: "Укажи доход и план по категориям расходов"
+const STEP_META = {
+    1: { title: "Доход", subtitle: "Сколько денег у тебя есть в этом месяце" },
+    2: { title: "Расходы", subtitle: "План расходов по категориям — необязательно заполнять всё" },
+    3: { title: "AI-анализ выписки", subtitle: "Опционально — но это сразу даст красивый профиль" }
 };
 
 let selectedStatementFile = null;
-let initStep = "form";
+let initStep = 1;
 let initSaved = false;
+let reuploadOnlyMode = false;
 
 async function openInitModal() {
     if (!initModal) {
         return;
     }
 
+    reuploadOnlyMode = false;
     resetInitModalState();
     initModal.classList.add("open");
     initModal.setAttribute("aria-hidden", "false");
@@ -36,96 +49,198 @@ async function openInitModal() {
 
     try {
         const setupData = await CashCareApi.getInitSetup();
-        renderInitCategories(setupData.categories);
+        renderInitCategories(setupData.categories || []);
         updateInitPreview();
     } catch (error) {
         showAlert("init-alert", formatError(error), "error");
     }
 }
 
+async function openReuploadModal() {
+    if (!initModal) return;
+
+    reuploadOnlyMode = true;
+    selectedStatementFile = null;
+
+    if (statementInput) statementInput.value = "";
+    if (statementFileName) statementFileName.textContent = "Файл не выбран";
+    if (statementUploadStatus) {
+        statementUploadStatus.textContent = "";
+        statementUploadStatus.className = "text-xs text-slate-500";
+    }
+    if (aiLoadingPanel) aiLoadingPanel.classList.add("hidden");
+    if (aiResultsPanel) {
+        aiResultsPanel.classList.add("hidden");
+        aiResultsPanel.innerHTML = "";
+    }
+    const card = document.getElementById("init-modal-card");
+    if (card) card.classList.remove("max-w-[760px]");
+
+    Object.entries(stepPanels).forEach(([key, panel]) => {
+        if (!panel) return;
+        panel.classList.toggle("hidden", key !== "3");
+    });
+    initStep = 3;
+
+    initModal.classList.add("open");
+    initModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+    hideAlert("init-alert");
+
+    if (initStepCounter) initStepCounter.textContent = "Обновление AI";
+    stepDots.forEach((d) => {
+        d.classList.remove("active", "done");
+        if (Number(d.dataset.step) === 3) d.classList.add("active");
+        else d.classList.add("done");
+    });
+    if (initTitle) initTitle.textContent = "Загрузить новую выписку";
+    if (initSubtitle) initSubtitle.textContent = "AI пересчитает категории и профиль на основе свежей выписки";
+
+    updateNavButtons();
+}
+
 function closeInitModal() {
     if (!initModal) {
         return;
     }
-
     initModal.classList.remove("open");
     initModal.setAttribute("aria-hidden", "true");
     document.body.classList.remove("modal-open");
 }
 
 function resetInitModalState() {
-    initStep = "form";
+    initStep = 1;
     initSaved = false;
-    resetStatementUpload();
-    resetInitModalHeader();
-
-    if (initFormContent) {
-        initFormContent.classList.remove("hidden");
+    selectedStatementFile = null;
+    if (statementInput) statementInput.value = "";
+    if (statementFileName) statementFileName.textContent = "Файл не выбран";
+    if (statementUploadStatus) {
+        statementUploadStatus.textContent = "";
+        statementUploadStatus.className = "text-xs text-slate-500";
     }
-    if (aiLoadingPanel) {
-        aiLoadingPanel.classList.add("hidden");
-    }
+    if (aiLoadingPanel) aiLoadingPanel.classList.add("hidden");
     if (aiResultsPanel) {
         aiResultsPanel.classList.add("hidden");
         aiResultsPanel.innerHTML = "";
     }
-    if (initModalCard) {
-        initModalCard.classList.remove("modal-wide");
+    const card = document.getElementById("init-modal-card");
+    if (card) card.classList.remove("max-w-[760px]");
+    showStep(1);
+}
+
+function showStep(step) {
+    initStep = step;
+
+    Object.entries(stepPanels).forEach(([key, panel]) => {
+        if (!panel) return;
+        panel.classList.toggle("hidden", String(key) !== String(step));
+    });
+
+    if (aiLoadingPanel) aiLoadingPanel.classList.add("hidden");
+    if (aiResultsPanel) aiResultsPanel.classList.add("hidden");
+
+    stepDots.forEach((dot) => {
+        const dotStep = Number(dot.dataset.step);
+        dot.classList.remove("active", "done");
+        if (dotStep < step) dot.classList.add("done");
+        else if (dotStep === step) dot.classList.add("active");
+    });
+
+    const meta = STEP_META[step];
+    if (meta) {
+        if (initTitle) initTitle.textContent = meta.title;
+        if (initSubtitle) initSubtitle.textContent = meta.subtitle;
     }
-    if (initBtn) {
-        initBtn.textContent = "Начать пользоваться";
-        initBtn.disabled = false;
+    if (initStepCounter) {
+        initStepCounter.textContent = `Шаг ${step} из 3`;
     }
-    if (initSkipBtn) {
-        initSkipBtn.classList.add("hidden");
+
+    updateNavButtons();
+}
+
+function updateNavButtons() {
+    if (!initBackBtn || !initBtn || !initSkipBtn) return;
+
+    initBackBtn.classList.remove("invisible");
+    if (initStep === 1 || reuploadOnlyMode) initBackBtn.classList.add("invisible");
+
+    initSkipBtn.classList.add("hidden");
+
+    if (initStep === 1 || initStep === 2) {
+        setLoading(initBtn, false, "Далее →");
+    } else if (initStep === 3) {
+        let label;
+        if (reuploadOnlyMode) {
+            label = selectedStatementFile ? "Проанализировать" : "Закрыть";
+        } else {
+            label = selectedStatementFile ? "Сохранить и проанализировать" : "Сохранить и закрыть";
+        }
+        setLoading(initBtn, false, label);
     }
 }
 
-function resetInitModalHeader() {
-    const modalTitle = document.getElementById("init-modal-title");
-    const modalSubtitle = document.querySelector(".modal-subtitle");
+function showAiLoadingStepUi(text) {
+    Object.values(stepPanels).forEach((panel) => panel?.classList.add("hidden"));
+    if (aiResultsPanel) aiResultsPanel.classList.add("hidden");
+    if (aiLoadingPanel) aiLoadingPanel.classList.remove("hidden");
+    if (aiLoadingStep && text) aiLoadingStep.textContent = text;
 
-    if (modalTitle) {
-        modalTitle.textContent = INIT_MODAL_DEFAULTS.title;
-    }
-    if (modalSubtitle) {
-        modalSubtitle.textContent = INIT_MODAL_DEFAULTS.subtitle;
-    }
+    if (initTitle) initTitle.textContent = "AI работает";
+    if (initSubtitle) initSubtitle.textContent = "Подожди немного — обычно 5–25 секунд";
+
+    initSkipBtn.classList.remove("hidden");
+    initSkipBtn.textContent = "Пропустить AI →";
+    initBackBtn.classList.add("invisible");
+    setLoading(initBtn, true, "AI анализирует...");
 }
 
-function resetStatementUpload() {
-    selectedStatementFile = null;
-    if (statementInput) {
-        statementInput.value = "";
+function showAiResultsUi(analysis) {
+    Object.values(stepPanels).forEach((panel) => panel?.classList.add("hidden"));
+    if (aiLoadingPanel) aiLoadingPanel.classList.add("hidden");
+    if (aiResultsPanel) {
+        aiResultsPanel.classList.remove("hidden");
+        renderAiAnalysis(aiResultsPanel, analysis);
     }
-    if (statementFileName) {
-        statementFileName.textContent = "Файл не выбран";
-    }
-    if (statementUploadStatus) {
-        statementUploadStatus.textContent = "";
-        statementUploadStatus.className = "upload-status";
-    }
+
+    const card = document.getElementById("init-modal-card");
+    if (card) card.classList.add("max-w-[760px]");
+
+    if (initTitle) initTitle.textContent = "AI разобрал твою выписку";
+    if (initSubtitle) initSubtitle.textContent = "Категории добавлены — подправить можно в кабинете";
+    if (initStepCounter) initStepCounter.textContent = "Готово";
+
+    stepDots.forEach((d) => d.classList.add("done"));
+
+    initBackBtn.classList.add("invisible");
+    initSkipBtn.classList.add("hidden");
+    setLoading(initBtn, false, "Перейти в кабинет →");
+    initStep = "ai-results";
 }
 
 function renderInitCategories(categories) {
-    categoriesContainer.innerHTML = categories.map((category) => `
-        <div class="category-row" data-category-id="${category.id}">
-            <div class="category-row-head">
-                <label for="category-${category.id}">${category.nameCategory}</label>
-                ${category.required ? '<span class="category-tag">обязательная</span>' : ""}
+    if (!categoriesContainer) return;
+
+    categoriesContainer.innerHTML = (categories || []).map((category) => `
+        <div class="init-cat-row">
+            <div>
+                <div class="init-cat-name">${category.nameCategory}
+                    ${category.required ? '<span class="init-cat-required">обяз.</span>' : ''}
+                </div>
             </div>
             <input
-                id="category-${category.id}"
                 type="number"
                 min="0"
                 step="1000"
                 placeholder="0"
                 data-category-id="${category.id}"
-                class="category-input"
-                required
+                class="init-input category-input"
             >
         </div>
     `).join("");
+
+    if (!categories || categories.length === 0) {
+        categoriesContainer.innerHTML = '<p class="text-xs text-slate-500">Нет категорий — пропусти этот шаг.</p>';
+    }
 }
 
 function collectInitPayload() {
@@ -148,16 +263,16 @@ function updateInitPreview() {
     const totalExpenses = Array.from(document.querySelectorAll(".category-input"))
         .reduce((sum, input) => sum + Number(input.value || 0), 0);
 
-    totalExpensesEl.textContent = formatMoney(totalExpenses);
-    balanceEl.textContent = formatMoney(salary - totalExpenses);
-    balanceEl.className = salary - totalExpenses >= 0 ? "preview-value positive" : "preview-value negative";
+    if (totalExpensesEl) totalExpensesEl.textContent = formatMoney(totalExpenses);
+    if (balanceEl) {
+        balanceEl.textContent = formatMoney(salary - totalExpenses);
+        balanceEl.classList.toggle("text-rose-600", salary - totalExpenses < 0);
+        balanceEl.classList.toggle("text-emerald-900", salary - totalExpenses >= 0);
+    }
 }
 
 function isPdfFile(file) {
-    if (!file) {
-        return false;
-    }
-
+    if (!file) return false;
     const name = file.name?.toLowerCase() ?? "";
     return file.type === "application/pdf" || name.endsWith(".pdf");
 }
@@ -169,22 +284,20 @@ function handleStatementFileChange(event) {
     if (!file) {
         statementFileName.textContent = "Файл не выбран";
         statementUploadStatus.textContent = "";
-        statementUploadStatus.className = "upload-status";
-        return;
-    }
-
-    if (!isPdfFile(file)) {
+        statementUploadStatus.className = "text-xs text-slate-500";
+    } else if (!isPdfFile(file)) {
         selectedStatementFile = null;
         statementInput.value = "";
         statementFileName.textContent = "Файл не выбран";
         statementUploadStatus.textContent = "Нужен PDF-файл выписки";
-        statementUploadStatus.className = "upload-status error";
-        return;
+        statementUploadStatus.className = "text-xs text-rose-600 font-semibold";
+    } else {
+        statementFileName.textContent = file.name;
+        statementUploadStatus.textContent = "Готово к анализу";
+        statementUploadStatus.className = "text-xs text-emerald-700 font-semibold";
     }
 
-    statementFileName.textContent = file.name;
-    statementUploadStatus.textContent = "После сохранения бюджета AI проанализирует выписку";
-    statementUploadStatus.className = "upload-status pending";
+    if (initStep === 3) updateNavButtons();
 }
 
 function handleStatementDrop(event) {
@@ -192,139 +305,82 @@ function handleStatementDrop(event) {
     event.currentTarget.classList.remove("dragover");
 
     const file = event.dataTransfer?.files?.[0];
-    if (!file) {
-        return;
-    }
+    if (!file || !statementInput) return;
 
-    if (statementInput) {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(file);
-        statementInput.files = dataTransfer.files;
-        statementInput.dispatchEvent(new Event("change"));
-    }
-}
-
-function showAiLoadingStep(stepText) {
-    if (initFormContent) {
-        initFormContent.classList.add("hidden");
-    }
-    if (aiResultsPanel) {
-        aiResultsPanel.classList.add("hidden");
-    }
-    if (aiLoadingPanel) {
-        aiLoadingPanel.classList.remove("hidden");
-    }
-    if (aiLoadingStep) {
-        aiLoadingStep.textContent = stepText;
-    }
-    if (initSkipBtn) {
-        initSkipBtn.classList.remove("hidden");
-    }
-
-    const modalTitle = document.getElementById("init-modal-title");
-    const modalSubtitle = document.querySelector(".modal-subtitle");
-    if (modalTitle) {
-        modalTitle.textContent = "AI разбирает выписку";
-    }
-    if (modalSubtitle) {
-        modalSubtitle.textContent = "Обычно это занимает 15–40 секунд";
-    }
-
-    initStep = "loading";
-    scrollInitModalToTop();
-}
-
-function hideAiLoadingStep() {
-    if (aiLoadingPanel) {
-        aiLoadingPanel.classList.add("hidden");
-    }
-    if (initSkipBtn) {
-        initSkipBtn.classList.add("hidden");
-    }
-}
-
-function showAiResultsStep(analysis) {
-    hideAiLoadingStep();
-
-    if (aiResultsPanel) {
-        aiResultsPanel.classList.remove("hidden");
-        renderAiAnalysis(aiResultsPanel, analysis);
-    }
-    if (initModalCard) {
-        initModalCard.classList.add("modal-wide");
-    }
-
-    const modalTitle = document.getElementById("init-modal-title");
-    const modalSubtitle = document.querySelector(".modal-subtitle");
-    if (modalTitle) {
-        modalTitle.textContent = "AI разобрал твою выписку";
-    }
-    if (modalSubtitle) {
-        modalSubtitle.textContent = "Категории добавлены автоматически — поправить их можно позже в кабинете";
-    }
-
-    initStep = "ai-results";
-    setLoading(initBtn, false, "Перейти в кабинет");
-    scrollInitModalToTop();
-}
-
-function showAiErrorStep(error) {
-    hideAiLoadingStep();
-
-    if (initFormContent) {
-        initFormContent.classList.remove("hidden");
-    }
-
-    resetInitModalHeader();
-    showAlert("init-alert", formatError(error), "error");
-
-    if (statementUploadStatus) {
-        statementUploadStatus.textContent = "Не удалось проанализировать выписку. Можно выбрать другой PDF и повторить.";
-        statementUploadStatus.className = "upload-status error";
-    }
-
-    initStep = "ai-error";
-    setLoading(initBtn, false, selectedStatementFile ? "Повторить AI-анализ" : "Перейти в кабинет");
-}
-
-function scrollInitModalToTop() {
-    if (initModalCard) {
-        initModalCard.scrollTop = 0;
-    }
-}
-
-function goToDashboard() {
-    closeInitModal();
-    window.location.href = "/dashboard";
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    statementInput.files = dt.files;
+    statementInput.dispatchEvent(new Event("change"));
 }
 
 async function runAiAnalysis() {
     if (!selectedStatementFile) {
-        goToDashboard();
+        finishAndGoToDashboard();
         return;
     }
-
     if (!isPdfFile(selectedStatementFile)) {
         showAlert("init-alert", "Выбери PDF-файл выписки", "error");
         return;
     }
 
     hideAlert("init-alert");
-    showAiLoadingStep("Читаем PDF и отправляем транзакции в AI...");
-    setLoading(initBtn, true, "AI анализирует...");
+    showAiLoadingStepUi("Читаем PDF и шлём транзакции в нейросеть...");
+
+    const progressTimer = setTimeout(() => {
+        if (aiLoadingStep) aiLoadingStep.textContent = "Нейросеть категоризирует транзакции...";
+    }, 8000);
+    const progressTimer2 = setTimeout(() => {
+        if (aiLoadingStep) aiLoadingStep.textContent = "Почти готово, формируем профиль...";
+    }, 25000);
 
     try {
         const result = await CashCareApi.uploadStatement(selectedStatementFile);
+        clearTimeout(progressTimer);
+        clearTimeout(progressTimer2);
+
         saveAiAnalysis(result.analysis);
 
-        if (statementUploadStatus) {
-            statementUploadStatus.textContent = "AI-анализ готов";
-            statementUploadStatus.className = "upload-status success";
+        if (reuploadOnlyMode) {
+            closeInitModal();
+            if (typeof reloadOverview === "function") {
+                await reloadOverview();
+            } else {
+                window.location.reload();
+            }
+            return;
         }
 
-        showAiResultsStep(result.analysis);
+        showAiResultsUi(result.analysis);
     } catch (error) {
-        showAiErrorStep(error);
+        clearTimeout(progressTimer);
+        clearTimeout(progressTimer2);
+
+        if (reuploadOnlyMode) {
+            Object.entries(stepPanels).forEach(([key, panel]) => {
+                if (!panel) return;
+                panel.classList.toggle("hidden", key !== "3");
+            });
+            if (aiLoadingPanel) aiLoadingPanel.classList.add("hidden");
+            initStep = 3;
+            updateNavButtons();
+        } else {
+            showStep(3);
+            setLoading(initBtn, false, selectedStatementFile ? "Повторить AI-анализ" : "Сохранить и закрыть");
+        }
+        showAlert("init-alert", formatError(error), "error");
+        if (statementUploadStatus) {
+            statementUploadStatus.textContent = "Ошибка анализа — попробуй ещё раз или закрой модалку";
+            statementUploadStatus.className = "text-xs text-rose-600 font-semibold";
+        }
+    }
+}
+
+function finishAndGoToDashboard() {
+    closeInitModal();
+    if (window.location.pathname !== "/dashboard") {
+        window.location.href = "/dashboard";
+    } else {
+        window.location.reload();
     }
 }
 
@@ -332,66 +388,92 @@ async function handleInitSubmit(event) {
     event.preventDefault();
     hideAlert("init-alert");
 
-    if (initStep === "ai-results" || (initStep === "ai-error" && !selectedStatementFile)) {
-        goToDashboard();
+    if (initStep === "ai-results") {
+        finishAndGoToDashboard();
         return;
     }
 
-    if (initStep === "ai-error" && selectedStatementFile) {
-        await runAiAnalysis();
-        return;
-    }
-
-    setLoading(initBtn, true, "Сохраняем бюджет...");
-
-    try {
-        if (!initSaved) {
-            await CashCareApi.submitInit(collectInitPayload());
-            initSaved = true;
+    if (initStep === 1) {
+        const salary = Number(document.getElementById("salary-input").value);
+        if (!salary || salary <= 0) {
+            showAlert("init-alert", "Укажи зарплату/доход", "error");
+            return;
         }
+        showStep(2);
+        return;
+    }
 
-        if (selectedStatementFile) {
-            await runAiAnalysis();
+    if (initStep === 2) {
+        showStep(3);
+        return;
+    }
+
+    if (initStep === 3) {
+        if (reuploadOnlyMode) {
+            if (!selectedStatementFile) {
+                closeInitModal();
+                return;
+            }
+            try {
+                await runAiAnalysis();
+            } catch (error) {
+                showAlert("init-alert", formatError(error), "error");
+                updateNavButtons();
+            }
             return;
         }
 
-        goToDashboard();
-    } catch (error) {
-        showAlert("init-alert", formatError(error), "error");
-    } finally {
-        if (initStep === "form") {
-            setLoading(initBtn, false, "Начать пользоваться");
+        setLoading(initBtn, true, "Сохраняем бюджет...");
+        try {
+            if (!initSaved) {
+                await CashCareApi.submitInit(collectInitPayload());
+                initSaved = true;
+            }
+
+            if (selectedStatementFile) {
+                await runAiAnalysis();
+                return;
+            }
+
+            finishAndGoToDashboard();
+        } catch (error) {
+            showAlert("init-alert", formatError(error), "error");
+            updateNavButtons();
         }
     }
 }
 
-function bindInitModal() {
-    if (!initForm) {
-        return;
+function handleBack() {
+    if (initStep === 2) showStep(1);
+    else if (initStep === 3) showStep(2);
+}
+
+function handleSkip() {
+    if (initSaved) {
+        finishAndGoToDashboard();
     }
+}
+
+function bindInitModal() {
+    if (!initForm) return;
 
     initForm.addEventListener("submit", handleInitSubmit);
     initForm.addEventListener("input", updateInitPreview);
+
+    if (initBackBtn) initBackBtn.addEventListener("click", handleBack);
+    if (initSkipBtn) initSkipBtn.addEventListener("click", handleSkip);
 
     if (statementInput) {
         statementInput.addEventListener("change", handleStatementFileChange);
     }
 
-    if (initSkipBtn) {
-        initSkipBtn.addEventListener("click", () => {
-            if (initSaved) {
-                goToDashboard();
-            }
+    document.querySelectorAll(".file-drop-zone").forEach((zone) => {
+        zone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            zone.classList.add("dragover");
         });
-    }
-
-    document.querySelectorAll(".file-drop").forEach((dropZone) => {
-        dropZone.addEventListener("dragover", (event) => {
-            event.preventDefault();
-            dropZone.classList.add("dragover");
-        });
-        dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-        dropZone.addEventListener("drop", handleStatementDrop);
+        zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+        zone.addEventListener("drop", handleStatementDrop);
     });
 }
 

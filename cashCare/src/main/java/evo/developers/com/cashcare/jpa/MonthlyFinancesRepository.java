@@ -13,6 +13,8 @@ public interface MonthlyFinancesRepository extends JpaRepository<MonthlyFinances
 
     Optional<MonthlyFinances> findByIdAndUser(Long id, UserEntity user);
 
+    Optional<MonthlyFinances> findTopByUserOrderByYearDescMonthDesc(UserEntity user);
+
     List<MonthlyFinances> findAllByUserOrderByYearDescMonthDesc(UserEntity user);
 
     boolean existsByUserAndYearAndMonth(UserEntity user, int year, int month);

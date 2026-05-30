@@ -2,7 +2,6 @@ package evo.developers.com.cashcare.service;
 
 import evo.developers.com.cashcare.component.JsonHelper;
 import evo.developers.com.cashcare.config.UploadProperties;
-import evo.developers.com.cashcare.entity.UserEntity;
 import evo.developers.com.cashcare.exception.BaseException;
 import evo.developers.com.cashcare.exception.NotFoundException;
 import evo.developers.com.cashcare.exception.ParsingPdfException;
@@ -17,6 +16,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -25,6 +30,14 @@ public class StatementPdfDocumentService {
 
     private static final String PDF_CONTENT_TYPE = "application/pdf";
     private static final Log log = LogFactory.getLog(StatementPdfDocumentService.class);
+
+    private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss"),
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"),
+            DateTimeFormatter.ofPattern("dd.MM.yyyy"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    );
 
     private final UserRepository userRepository;
     private final PdfParserService pdfParserService;
@@ -40,19 +53,88 @@ public class StatementPdfDocumentService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         byte[] pdfBytes = readBytes(file);
-        List<BankTransaction> transactions = parseStatement(pdfBytes);
+        List<BankTransaction> allTransactions = parseStatement(pdfBytes);
+        List<BankTransaction> transactions = filterLastMonth(allTransactions);
+
+        log.info("Statement parsed for " + username
+                + ": total tx=" + allTransactions.size()
+                + ", kept last month=" + transactions.size());
 
         String payload = jsonHelper.toJson(transactions);
         AnalyzeAiProfile profile = aiAnalyzeService.analyzeTransaction(username, payload);
         log.info("AI profile analyzed for user " + username + ": " + jsonHelper.toJson(profile));
 
-        redisService.save(username, jsonHelper.toJson(profile)); // TODO SAVE DATABASE!
+        redisService.save(username, jsonHelper.toJson(profile));
 
         return profile;
     }
 
     public List<BankTransaction> parseStatement(byte[] pdfBytes) throws ParsingPdfException {
         return pdfParserService.parseTBankPdf(pdfBytes);
+    }
+
+    /**
+     * Keep only transactions from the latest calendar month present in the statement.
+     * If dates can't be parsed at all — return everything as-is.
+     */
+    List<BankTransaction> filterLastMonth(List<BankTransaction> transactions) {
+        if (transactions == null || transactions.isEmpty()) {
+            return transactions == null ? List.of() : transactions;
+        }
+
+        List<Dated> dated = new ArrayList<>(transactions.size());
+        for (BankTransaction tx : transactions) {
+            LocalDate date = parseDate(tx.getDateTimeOperation());
+            if (date == null) {
+                date = parseDate(tx.getDateTimeWriteOff());
+            }
+            dated.add(new Dated(tx, date));
+        }
+
+        boolean anyDated = dated.stream().anyMatch(d -> d.date != null);
+        if (!anyDated) {
+            return transactions;
+        }
+
+        YearMonth lastMonth = dated.stream()
+                .map(d -> d.date)
+                .filter(d -> d != null)
+                .map(YearMonth::from)
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+
+        if (lastMonth == null) {
+            return transactions;
+        }
+
+        List<BankTransaction> result = new ArrayList<>();
+        for (Dated d : dated) {
+            if (d.date != null && YearMonth.from(d.date).equals(lastMonth)) {
+                result.add(d.tx);
+            }
+        }
+        return result.isEmpty() ? transactions : result;
+    }
+
+    private LocalDate parseDate(String raw) {
+        if (raw == null) return null;
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) return null;
+
+        for (DateTimeFormatter fmt : DATE_FORMATS) {
+            try {
+                return LocalDateTime.parse(trimmed, fmt).toLocalDate();
+            } catch (Exception ignored) {
+            }
+            try {
+                return LocalDate.parse(trimmed, fmt);
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    private record Dated(BankTransaction tx, LocalDate date) {
     }
 
     private void validatePdf(MultipartFile file) throws ValidInputException {

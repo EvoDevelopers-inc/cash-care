@@ -16,13 +16,8 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-//    @ExceptionHandler(Exception.class)
-//    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
-//        ErrorResponse responseError = new ErrorResponse();
-//        return ResponseEntity
-//                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                .body(responseError);
-//    }
+    private static final org.apache.commons.logging.Log log =
+            org.apache.commons.logging.LogFactory.getLog(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BaseException.class)
     public ResponseEntity<ErrorResponse> handleBaseException(BaseException ex) {
@@ -33,6 +28,43 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(ex.getStatusHttpCode())
                 .body(responseError);
+    }
+
+    @ExceptionHandler(org.springframework.web.client.ResourceAccessException.class)
+    public ResponseEntity<ErrorResponse> handleAiTimeout(
+            org.springframework.web.client.ResourceAccessException ex
+    ) {
+        log.warn("AI request timed out: " + ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.GATEWAY_TIMEOUT)
+                .body(ErrorResponse.error(
+                        "AI слишком долго не отвечал. Попробуй ещё раз.",
+                        java.util.List.of(ex.getMessage())
+                ));
+    }
+
+    @ExceptionHandler(org.springframework.web.client.RestClientException.class)
+    public ResponseEntity<ErrorResponse> handleAiRestError(
+            org.springframework.web.client.RestClientException ex
+    ) {
+        log.warn("AI request failed: " + ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_GATEWAY)
+                .body(ErrorResponse.error(
+                        "Ошибка обращения к AI. Проверь, доступен ли OpenRouter.",
+                        java.util.List.of(ex.getMessage())
+                ));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ErrorResponse> handleGenericRuntime(RuntimeException ex) {
+        log.error("Unhandled error: " + ex.getMessage(), ex);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ErrorResponse.error(
+                        "Что-то пошло не так",
+                        java.util.List.of(ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage())
+                ));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

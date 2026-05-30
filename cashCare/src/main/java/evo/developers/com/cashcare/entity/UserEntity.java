@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -37,8 +39,8 @@ public class UserEntity {
     @Column(nullable = false)
     private Gender gender;
 
-    @OneToOne(cascade = CascadeType.ALL)
-    private ProfileAnalyzedAI profileAnalyzedAI;
+//    @OneToOne(cascade = CascadeType.ALL)
+//    private ProfileAnalyzedAI profileAnalyzedAI;
 
     @Column(name = "is_init", nullable = false, columnDefinition = "boolean default false")
     private boolean isInit = false;

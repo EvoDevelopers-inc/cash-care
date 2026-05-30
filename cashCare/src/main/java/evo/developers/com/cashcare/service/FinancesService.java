@@ -75,6 +75,11 @@ public class FinancesService {
                 .toList();
     }
 
+    public MonthlyFinances getMonthlyFinances(UserEntity user) throws NotFoundException {
+        return monthlyFinancesRepository.
+                findTopByUserOrderByYearDescMonthDesc(user).orElseGet(null);
+    }
+
     @Transactional(readOnly = true)
     public MonthlyFinancesResponse getMonthlyFinances(String username, Long id) throws NotFoundException {
         return MonthlyFinancesResponse.from(getOwnedMonthlyFinances(username, id));
