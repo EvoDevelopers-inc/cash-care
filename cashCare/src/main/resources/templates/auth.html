@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CashCare — Вход</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/app.css">
+    <script src="/js/sdkClient.js" defer></script>
+    <script src="/js/common.js" defer></script>
+    <script src="/js/aiAnalysisUi.js?v=2" defer></script>
+    <script src="/js/initModal.js" defer></script>
+    <script src="/js/auth.js" defer></script>
+</head>
+<body class="page-guest">
+<div class="bg-grid"></div>
+
+<div class="shell">
+    <div class="hero">
+        <div>
+            <div class="badge">Гостевой доступ</div>
+            <h1 class="hero-title">Добро пожаловать в <span>CashCare</span></h1>
+            <p class="hero-text">
+                Зарегистрируйся — сразу после этого откроется окно настройки бюджета.
+            </p>
+            <div class="feature-list">
+                <div class="feature-item"><span class="feature-dot"></span>Регистрация и вход через REST API</div>
+                <div class="feature-item"><span class="feature-dot"></span>JWT сохраняется в браузере</div>
+                <div class="feature-item"><span class="feature-dot"></span>Бюджет настраивается в popup после регистрации</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="tabs">
+                    <button type="button" class="tab-btn active" data-tab="login">Вход</button>
+                    <button type="button" class="tab-btn" data-tab="register">Регистрация</button>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <form id="login-form" class="form-panel active">
+                    <div class="field-grid">
+                        <div>
+                            <label for="login-input">Email или username</label>
+                            <input id="login-input" type="text" placeholder="user@mail.com" autocomplete="username" required>
+                        </div>
+                        <div>
+                            <label for="login-password">Пароль</label>
+                            <input id="login-password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+                        </div>
+                    </div>
+                    <button id="login-btn" type="submit" class="btn btn-primary">Войти</button>
+                    <div id="login-alert" class="alert"></div>
+                </form>
+
+                <form id="register-form" class="form-panel">
+                    <div class="field-grid two-col">
+                        <div>
+                            <label for="reg-first-name">Имя</label>
+                            <input id="reg-first-name" type="text" placeholder="Иван" required>
+                        </div>
+                        <div>
+                            <label for="reg-last-name">Фамилия</label>
+                            <input id="reg-last-name" type="text" placeholder="Иванов" required>
+                        </div>
+                        <div>
+                            <label for="reg-username">Username</label>
+                            <input id="reg-username" type="text" placeholder="ivan_care" required>
+                        </div>
+                        <div>
+                            <label for="reg-email">Email</label>
+                            <input id="reg-email" type="email" placeholder="ivan@mail.com" required>
+                        </div>
+                        <div>
+                            <label for="reg-age">Возраст</label>
+                            <input id="reg-age" type="number" min="18" value="18" required>
+                        </div>
+                        <div>
+                            <label for="reg-gender">Пол</label>
+                            <select id="reg-gender" required>
+                                <option value="MALE">Мужской</option>
+                                <option value="FEMALE">Женский</option>
+                            </select>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label for="reg-password">Пароль</label>
+                            <input id="reg-password" type="password" placeholder="минимум 6 символов" autocomplete="new-password" required>
+                        </div>
+                    </div>
+                    <button id="register-btn" type="submit" class="btn btn-primary">Создать аккаунт</button>
+                    <div id="register-alert" class="alert"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="init-modal" class="modal-overlay" aria-hidden="true">
+    <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="init-modal-title">
+        <div class="modal-header">
+            <div>
+                <div class="badge">Почти готово</div>
+                <h2 id="init-modal-title" class="section-title modal-title">Настрой бюджет на месяц</h2>
+                <p class="modal-subtitle">Укажи доход и план по категориям расходов</p>
+            </div>
+        </div>
+        <div class="card-body modal-body">
+            <form id="init-form">
+                <div id="init-form-content">
+                <div class="init-section">
+                    <h3 class="section-title">Доход</h3>
+                    <div class="field-grid two-col">
+                        <div>
+                            <label for="salary-input">Зарплата / доход</label>
+                            <input id="salary-input" type="number" min="0" step="1000" placeholder="120000" required>
+                        </div>
+                        <div>
+                            <label for="others-input">Другие доходы</label>
+                            <input id="others-input" type="text" placeholder="фриланс, бонусы">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="init-section">
+                    <h3 class="section-title">Расходы</h3>
+                    <div id="categories-container" class="category-list"></div>
+                </div>
+
+                <div class="init-section">
+                    <h3 class="section-title">Выписка PDF</h3>
+                    <p class="upload-hint">Необязательно. Загрузи выписку T-Bank — AI разберёт траты и добавит категории.</p>
+                    <label class="file-drop" for="statement-input">
+                        <input id="statement-input" type="file" accept="application/pdf,.pdf">
+                        <span class="file-drop-title">Выбери PDF или перетащи сюда</span>
+                        <span id="statement-file-name" class="file-drop-name">Файл не выбран</span>
+                    </label>
+                    <div id="statement-upload-status" class="upload-status"></div>
+                </div>
+
+                <div class="preview-panel">
+                    <div>
+                        <div class="preview-label">Всего расходов</div>
+                        <div id="total-expenses" class="preview-value">0 ₽</div>
+                    </div>
+                    <div>
+                        <div class="preview-label">Остаток</div>
+                        <div id="balance-preview" class="preview-value positive">0 ₽</div>
+                    </div>
+                </div>
+                </div>
+
+                <div id="ai-results-panel" class="ai-results hidden"></div>
+
+                <div id="ai-loading-panel" class="ai-loading hidden" aria-live="polite">
+                    <div class="ai-loading-ring"></div>
+                    <p class="ai-loading-title">AI анализирует выписку</p>
+                    <p id="ai-loading-step" class="ai-loading-step">Читаем PDF...</p>
+                </div>
+
+                <div class="init-actions">
+                    <button id="init-btn" type="submit" class="btn btn-primary">Начать пользоваться</button>
+                    <button id="init-skip-btn" type="button" class="btn btn-ghost hidden">Пропустить AI и перейти в кабинет</button>
+                </div>
+                <div id="init-alert" class="alert"></div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

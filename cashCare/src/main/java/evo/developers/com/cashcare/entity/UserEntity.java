@@ -37,5 +37,9 @@ public class UserEntity {
     @Column(nullable = false)
     private Gender gender;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    private ProfileAnalyzedAI profileAnalyzedAI;
 
+    @Column(name = "is_init", nullable = false, columnDefinition = "boolean default false")
+    private boolean isInit = false;
 }

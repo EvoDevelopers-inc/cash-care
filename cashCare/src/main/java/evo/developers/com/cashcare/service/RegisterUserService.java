@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,8 +21,11 @@ public class RegisterUserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FinancesService financesService;
 
-    public void create(String email, String username, String firstName, String lastName, String password, int age, Gender gender) throws BaseException {
+    @Transactional
+    public void create(String email, String username, String firstName, String lastName, String password, int age, Gender gender)
+            throws BaseException {
 
         validateInput(username, password);
 
@@ -33,17 +37,19 @@ public class RegisterUserService {
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setHashPassword(passwordEncoder.encode(password));
+        user.setInit(false);
 
         saveUser(user);
+        financesService.setupDefaultFinancesForUser(user);
     }
 
     public void saveUser(UserEntity user) throws ValidInputException {
 
         try {
             userRepository.save(user);
-        }catch (DataIntegrityViolationException e){
+        } catch (DataIntegrityViolationException e) {
             log.error("User with email {} already exists", user.getEmail());
-            throw new ValidInputException("Email or username is already taken",  List.of("email is taken!", "password is taken!"));
+            throw new ValidInputException("Email or username is already taken", List.of("email is taken!", "password is taken!"));
         }
     }
 

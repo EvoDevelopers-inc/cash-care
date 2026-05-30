@@ -1,5 +1,6 @@
 package evo.developers.com.cashcare.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import evo.developers.com.cashcare.entity.UserEntity;
 import evo.developers.com.cashcare.model.Gender;
 import lombok.Getter;
@@ -16,6 +17,9 @@ public class UserProfileResponse {
     private int age;
     private Gender gender;
 
+    @JsonProperty("init")
+    private boolean initialized;
+
     public static UserProfileResponse from(UserEntity user) {
         UserProfileResponse response = new UserProfileResponse();
         response.setId(user.getId());
@@ -25,6 +29,7 @@ public class UserProfileResponse {
         response.setLastName(user.getLastName());
         response.setAge(user.getAge());
         response.setGender(user.getGender());
+        response.setInitialized(user.isInit());
         return response;
     }
 }

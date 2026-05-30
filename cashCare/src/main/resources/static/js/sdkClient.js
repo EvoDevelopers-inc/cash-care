@@ -88,6 +88,49 @@ const CashCareApi = {
         return this.request("GET", "/api/auth/me", undefined, true);
     },
 
+    async getInitSetup() {
+        return this.request("GET", "/api/finances/monthly/init/setup", undefined, true);
+    },
+
+    async submitInit(data) {
+        return this.request("POST", "/api/finances/monthly/init", data, true);
+    },
+
+    async uploadStatement(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const headers = {};
+        const token = this.getAccessToken();
+        if (token) {
+            headers.Authorization = `Bearer ${token}`;
+        }
+
+        const response = await fetch("/api/statements/upload", {
+            method: "POST",
+            headers,
+            body: formData
+        });
+
+        let payload = null;
+        try {
+            payload = await response.json();
+        } catch (_) {
+            payload = null;
+        }
+
+        if (!response.ok) {
+            const message = payload?.message || `Upload failed (${response.status})`;
+            const details = payload?.details ?? null;
+            const error = new Error(message);
+            error.status = response.status;
+            error.details = details;
+            throw error;
+        }
+
+        return payload;
+    },
+
     logout() {
         this.clearTokens();
     }

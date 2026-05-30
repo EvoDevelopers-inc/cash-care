@@ -6,8 +6,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class MainController {
 
-    @GetMapping("/")
-    public String index() {
-        return "index";
+    @GetMapping({"/", "/auth"})
+    public String authPage() {
+        return "auth";
+    }
+
+    @GetMapping("/init")
+    public String initPage() {
+        return "redirect:/";
+    }
+
+    @GetMapping("/dashboard")
+    public String dashboardPage() {
+        return "dashboard";
     }
 }
