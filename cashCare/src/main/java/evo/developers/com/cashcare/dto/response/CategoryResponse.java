@@ -1,5 +1,6 @@
 package evo.developers.com.cashcare.dto.response;
 
+import evo.developers.com.cashcare.dto.base.Response;
 import evo.developers.com.cashcare.entity.CategoryEntity;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,7 +9,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class CategoryResponse {
+public class CategoryResponse extends Response {
     private Long id;
     private Long monthlyFinancesId;
     private String nameCategory;
@@ -22,6 +23,9 @@ public class CategoryResponse {
         response.setNameCategory(entity.getNameCategory());
         response.setRequired(entity.isRequired());
         response.setPlannedAmount(entity.getPlannedAmount());
+
+        response.setMessage("Success");
+        response.setStatus(true);
         return response;
     }
 }

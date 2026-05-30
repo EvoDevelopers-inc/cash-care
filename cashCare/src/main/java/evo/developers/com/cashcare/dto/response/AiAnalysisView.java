@@ -9,6 +9,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@Deprecated
 public class AiAnalysisView {
     private PeriodView period;
     private TotalsView totals;

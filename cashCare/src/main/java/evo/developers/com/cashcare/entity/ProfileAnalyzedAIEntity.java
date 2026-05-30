@@ -6,11 +6,12 @@ import lombok.Data;
 @Entity
 @Table(name = "analyzed_profiles")
 @Data
-public class ProfileAnalyzedAI {
+public class ProfileAnalyzedAIEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
 
 
 }

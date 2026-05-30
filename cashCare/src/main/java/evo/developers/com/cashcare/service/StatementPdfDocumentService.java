@@ -31,6 +31,7 @@ public class StatementPdfDocumentService {
     private final UploadProperties uploadProperties;
     private final JsonHelper jsonHelper;
     private final AiAnalyzeService aiAnalyzeService;
+    private final RedisService redisService;
 
     public AnalyzeAiProfile processAiAnalyzeStatement(String username, MultipartFile file) throws BaseException {
         validatePdf(file);
@@ -44,6 +45,9 @@ public class StatementPdfDocumentService {
         String payload = jsonHelper.toJson(transactions);
         AnalyzeAiProfile profile = aiAnalyzeService.analyzeTransaction(username, payload);
         log.info("AI profile analyzed for user " + username + ": " + jsonHelper.toJson(profile));
+
+        redisService.save(username, jsonHelper.toJson(profile)); // TODO SAVE DATABASE!
+
         return profile;
     }
 

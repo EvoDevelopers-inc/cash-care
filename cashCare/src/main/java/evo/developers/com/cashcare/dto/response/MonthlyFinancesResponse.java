@@ -1,5 +1,6 @@
 package evo.developers.com.cashcare.dto.response;
 
+import evo.developers.com.cashcare.dto.base.Response;
 import evo.developers.com.cashcare.entity.MonthlyFinances;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,7 +9,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Setter
-public class MonthlyFinancesResponse {
+public class MonthlyFinancesResponse extends Response {
     private Long id;
     private int year;
     private int month;
@@ -22,6 +23,9 @@ public class MonthlyFinancesResponse {
         response.setMonth(entity.getMonth());
         response.setSalary(entity.getSalary());
         response.setOthers(entity.getOthers());
+        response.setMessage("Success");
+        response.setStatus(true);
+
         return response;
     }
 }

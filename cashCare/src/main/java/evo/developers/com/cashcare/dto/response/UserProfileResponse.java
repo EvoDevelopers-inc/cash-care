@@ -1,14 +1,17 @@
 package evo.developers.com.cashcare.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import evo.developers.com.cashcare.dto.base.Response;
 import evo.developers.com.cashcare.entity.UserEntity;
 import evo.developers.com.cashcare.model.Gender;
+import evo.developers.com.cashcare.model.User;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class UserProfileResponse {
+@Deprecated
+public class UserProfileResponse extends Response {
     private int id;
     private String username;
     private String email;
@@ -30,6 +33,12 @@ public class UserProfileResponse {
         response.setAge(user.getAge());
         response.setGender(user.getGender());
         response.setInitialized(user.isInit());
+
+        response.setUser(User.from(user)); // верный вариант, курсор долбаеб
+
         return response;
     }
+
+
+    private User user;
 }
