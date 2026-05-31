@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashCare — Кабинет</title>
+    <title>О! Зарплата — Кабинет</title>
     <link rel="icon" type="image/png" href="/images/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,19 +18,19 @@
             }
         };
     </script>
-    <link rel="stylesheet" href="/css/dashboard.css?v=29">
+    <link rel="stylesheet" href="/css/dashboard.css?v=36">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
-    <script src="/js/sdkClient.js?v=8" defer></script>
+    <script src="/js/sdkClient.js?v=9" defer></script>
     <script src="/js/common.js" defer></script>
     <script src="/js/aiAnalysisUi.js?v=5" defer></script>
     <script src="/js/initModal.js?v=10" defer></script>
     <script src="/js/surveyModal.js?v=3" defer></script>
-    <script src="/js/goalsModal.js?v=4" defer></script>
-    <script src="/js/dashboard.js?v=31" defer></script>
+    <script src="/js/goalsModal.js?v=5" defer></script>
+    <script src="/js/spontaneousTransactions.js?v=4" defer></script>
+    <script src="/js/dashboard.js?v=37" defer></script>
 </head>
 <body class="min-h-screen font-sans text-slate-900">
 
-<!-- Tailwind safelist для динамических градиентов карточек целей (не удалять) -->
 <div class="hidden"
      data-tw-safelist="goal-gradients"
      aria-hidden="true">
@@ -63,7 +63,7 @@
         <!-- ───── LEFT SIDEBAR ───── -->
         <aside class="sidebar-left glass sticky top-5 flex h-fit flex-col gap-5 self-start rounded-3xl p-5">
             <a href="/dashboard" class="sidebar-logo flex items-center justify-center">
-                <img src="/images/logo.png" alt="CashCare" class="block h-10 w-auto">
+                <img src="/images/logo.png" alt="О! Зарплата" class="block h-10 w-auto">
             </a>
 
             <nav class="sidebar-nav flex flex-col gap-1">
@@ -177,7 +177,7 @@
                     </div>
                     <div class="flex flex-col items-end gap-2">
                         <span id="balance-mood" class="mood-chip">Спокойно</span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">MoneyMood</span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Денежное настроение</span>
                     </div>
                 </div>
 
@@ -189,28 +189,48 @@
                     <span class="pill income">Доходы <strong id="chip-income" class="ml-1">—</strong></span>
                     <span class="pill expense">Расходы <strong id="chip-expense" class="ml-1">—</strong></span>
                 </div>
+                <p id="balance-spont-hint" class="hidden mt-2 text-[11px] font-semibold text-indigo-700/90"></p>
             </section>
 
-            <!-- 2 cards: top categories + moneymood -->
+            <!-- 2 cards: Klerk vacancies (mock) + rating -->
             <div class="grid gap-5 lg:grid-cols-2">
-                <section class="glass rounded-3xl p-5">
-                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Топ категории на основе анализированных данных нейронкой</div>
-                    <h2 id="top-cat-name" class="mt-1 text-2xl font-extrabold tracking-tight">—</h2>
-                    <p class="text-xs text-slate-500">что сильнее всего влияет сейчас</p>
+                <section class="glass klerk-vacancies-card rounded-3xl p-5">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="klerk-vacancies-brand">Клерк · твоя карьера</span>
+                    </div>
+                    <h2 id="klerk-vacancies-title" class="mt-2 text-2xl font-extrabold tracking-tight">Подборка для вас</h2>
+                    <p class="text-xs text-slate-500">Вакансии от работодателя, новая работа и подработка — по профилю и бюджету</p>
 
-                    <div id="top-cat-list" class="mt-4 space-y-2"></div>
+                    <div id="klerk-vacancies-list" class="klerk-vacancies-list mt-4" role="list"></div>
+
+                    <a href="https://www.klerk.ru/vacancies/" target="_blank" rel="noopener noreferrer"
+                       class="klerk-vacancies-more mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-rose-200/80 bg-white/60 px-4 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-white hover:shadow-sm">
+                        <span>Все вакансии на Клерк</span>
+                        <i data-lucide="external-link" class="lc lc-sm"></i>
+                    </a>
                 </section>
 
-                <section class="glass rounded-3xl p-5">
-                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">MoneyMood</div>
-                    <h2 id="mood-title" class="mt-1 text-2xl font-extrabold tracking-tight">Жду данных</h2>
-                    <p id="mood-desc" class="mt-2 text-sm leading-relaxed text-slate-600">
-                        Заполни доход и расходы — посчитаю, насколько спокойно тебе с этим бюджетом.
-                    </p>
+                <section class="glass rounded-3xl p-5 ">
+                    <div class="flex flex-col gap-4">
+                        <div class="hidden">
+                            <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Денежное настроение</div>
+                            <h2 id="mood-title" class="mt-1 text-2xl font-extrabold tracking-tight">Жду данных</h2>
+                        </div>
+                        <div class="">
+                            <div class="text-lg font-bold uppercase tracking-wider text-slate-500">Твой рейтинг</div>
+                            <h2 id="rating-panel-title" class="mt-1 text-9xl font-extrabold tracking-tight">88%</h2>
+                            <p id="rating-desc" class="mt-2 text-sm leading-relaxed text-slate-600">
+                                Засчитывается при ежедневном входе в панель и заполнении данных не реже одного раза в месяц.                            </p>
+                            <p id="mood-desc" class="border-t-2 border-black mt-2 text-sm leading-relaxed text-slate-600">
+                                Заполни доход и расходы — посчитаю, насколько спокойно тебе с этим бюджетом.
+                            </p>
+                        </div>
+
+                    </div>
+
                 </section>
             </div>
 
-            <!-- Куда уйдут деньги -->
             <section class="glass rounded-3xl p-5">
                 <div class="flex items-baseline justify-between">
                     <h3 class="text-sm font-bold">Распределение дохода</h3>
@@ -267,7 +287,7 @@
                 </p>
             </section>
 
-            <!-- ───── Goal teaser (виден на главной) ───── -->
+            <!-- ───── Goal teaser (на главной, только если есть цель) ───── -->
             <section id="goal-teaser" class="goal-teaser hidden glass rounded-3xl p-5">
                 <div class="flex items-center justify-between gap-3 mb-3">
                     <div>
@@ -293,8 +313,8 @@
             </section>
 
             <!-- bottom: budget editor + health -->
-            <div class="grid gap-5 lg:grid-cols-2">
-                <section class="glass rounded-3xl p-5">
+            <div class="budget-health-grid grid gap-5 lg:grid-cols-2">
+                <section class="glass budget-month-card rounded-3xl p-5">
                     <div class="mb-1 flex items-center justify-between">
                         <h3 class="text-sm font-bold">Бюджет месяца</h3>
                         <button type="button" id="add-category-btn" class="btn-ghost rounded-lg px-3 py-1.5 text-xs font-bold transition">+ Добавить</button>
@@ -355,19 +375,71 @@
                     </div>
                 </section>
 
-                <section class="glass rounded-3xl p-5 max-h-64">
-                    <h3 class="text-sm font-bold">Финансовое здоровье</h3>
-                    <div class="mt-3 glass-soft rounded-2xl p-3">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Рейтинг</div>
-                        <div id="rating-label" class="mt-1 text-base font-extrabold leading-tight">—</div>
-                        <div id="rating-position" class="mt-0.5 text-[11px] font-semibold text-slate-500">— из —</div>
+                <section class="glass health-spont-column flex min-h-0 flex-col rounded-3xl p-5">
+
+                    <div class="health-top-block shrink-0">
+                        <h3 class="text-sm font-bold">Финансовое здоровье</h3>
+                        <div class="mt-3 glass-soft rounded-2xl p-3">
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Рейтинг</div>
+                            <div id="rating-label" class="mt-1 text-base font-extrabold leading-tight">—</div>
+                            <div id="rating-position" class="mt-0.5 text-[11px] font-semibold text-slate-500">— из —</div>
+                        </div>
+                        <p id="rating-tip" class="mt-3 text-xs leading-relaxed text-slate-600">Заполни доход и категории — увидишь, как ты держишься среди других.</p>
+                        <button id="open-ai-detail-btn" type="button" class="hidden mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-3 py-2 text-xs font-extrabold text-white shadow-md transition hover:shadow-lg">
+                            <i data-lucide="sparkles" class="lc lc-sm"></i>
+                            Открыть AI-профиль
+                        </button>
                     </div>
-                    <p id="rating-tip" class="mt-3 text-xs leading-relaxed text-slate-600">Заполни доход и категории — увидишь, как ты держишься среди других.</p>
-                    <button id="open-ai-detail-btn" type="button" class="hidden mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-3 py-2 text-xs font-extrabold text-white shadow-md transition hover:shadow-lg">
-                        <i data-lucide="sparkles" class="lc lc-sm"></i>
-                        Открыть AI-профиль
-                    </button>
+
+                    <div class="spontaneous-panel mt-4 flex min-h-0 flex-1 flex-col border-t border-white/50 pt-4">
+                        <div class="spontaneous-panel-controls shrink-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <h4 class="text-sm font-bold">Вне плана</h4>
+                                <p class="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                                    <span id="spont-month-label">за текущий месяц</span> · вне категорий бюджета
+                                </p>
+                            </div>
+                            <div class="spontaneous-totals text-right">
+                                <div id="spont-sum-income" class="text-xs font-extrabold text-emerald-700">+0 ₽</div>
+                                <div id="spont-sum-expense" class="text-xs font-extrabold text-rose-600">−0 ₽</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 grid grid-cols-2 gap-2">
+                            <button type="button" id="spont-btn-income" class="spontaneous-type-btn spontaneous-type-btn-income">
+                                <i data-lucide="plus-circle" class="lc lc-xs"></i>
+                                Доход
+                            </button>
+                            <button type="button" id="spont-btn-expense" class="spontaneous-type-btn spontaneous-type-btn-expense">
+                                <i data-lucide="minus-circle" class="lc lc-xs"></i>
+                                Расход
+                            </button>
+                        </div>
+
+                        <form id="spont-form" class="spontaneous-form hidden mt-3 space-y-2">
+                            <p id="spont-form-label" class="text-[11px] font-bold text-slate-600">Новая операция</p>
+                            <input id="spont-amount" type="number" min="1" step="1" required placeholder="Сумма, ₽"
+                                   class="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm font-semibold outline-none focus:border-indigo-300">
+                            <input id="spont-note" type="text" maxlength="200" placeholder="Комментарий — необязательно"
+                                   class="w-full rounded-xl border border-white/60 bg-white/70 px-3 py-2 text-sm outline-none focus:border-indigo-300">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" id="spont-cancel-btn" class="rounded-xl border border-slate-200 bg-white/60 py-2 text-xs font-bold text-slate-600">Отмена</button>
+                                <button type="submit" id="spont-submit-btn" class="rounded-xl bg-indigo-600 py-2 text-xs font-bold text-white">Добавить</button>
+                            </div>
+                        </form>
+                        </div>
+
+                        <div class="spontaneous-list-body mt-2">
+                            <div id="spont-empty" class="spontaneous-empty rounded-xl border border-dashed border-slate-200/80 bg-white/40 px-3 py-4 text-center text-[11px] text-slate-500">
+                                В этом месяце пока пусто — добавь кофе, чаевые или неожиданный бонус
+                            </div>
+                            <ul id="spont-list" class="spontaneous-list space-y-1.5 hidden"></ul>
+                        </div>
+                    </div>
+
                 </section>
+
             </div>
 
             <section class="glass rounded-3xl p-5">
@@ -775,6 +847,16 @@
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- AI refresh preloader (кнопка «Обновить AI») -->
+<div id="ai-overlay" class="ai-run-overlay hidden" aria-hidden="true" role="alertdialog" aria-labelledby="ai-overlay-title" aria-busy="true">
+    <div class="ai-run-overlay__card glass">
+        <div class="ai-loader ai-loader--brand" aria-hidden="true"></div>
+        <h2 id="ai-overlay-title" class="ai-run-overlay__title">Нейросеть обновляет план</h2>
+        <p id="ai-overlay-step" class="ai-run-overlay__step">Считаем категории и распределение...</p>
+        <p class="ai-run-overlay__hint">Обычно 15–40 секунд — не закрывай страницу</p>
     </div>
 </div>
 

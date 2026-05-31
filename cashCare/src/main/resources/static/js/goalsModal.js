@@ -306,8 +306,6 @@ function renderGoalsTeaser() {
     const teaser = document.getElementById("goal-teaser");
     if (!teaser) return;
 
-    teaser.classList.remove("hidden");
-
     const empty = document.getElementById("goal-teaser-empty");
     const host = document.getElementById("goal-teaser-card-host");
     const hint = document.getElementById("goal-teaser-hint");
@@ -315,12 +313,17 @@ function renderGoalsTeaser() {
 
     const items = goalsState.items;
     if (items.length === 0) {
-        empty.classList.remove("hidden");
+        teaser.classList.add("hidden");
+        empty.classList.add("hidden");
         host.innerHTML = "";
-        if (hint) hint.classList.add("hidden");
-        setText("goal-teaser-title", "Ещё нет мечты");
+        if (hint) {
+            hint.classList.add("hidden");
+            hint.innerHTML = "";
+        }
         return;
     }
+
+    teaser.classList.remove("hidden");
     empty.classList.add("hidden");
 
     const candidatesActive = items.filter((g) => !g.completed && !g.contributedThisMonth);

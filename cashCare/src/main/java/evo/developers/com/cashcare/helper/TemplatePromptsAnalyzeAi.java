@@ -2,7 +2,7 @@ package evo.developers.com.cashcare.helper;
 
 public class TemplatePromptsAnalyzeAi {
     public static final String SYSTEM_PROMPT_ANALYZE_STATEMENT_PDF = """
-            Ты AI-аналитик финансов CashCare. Анализируй транзакции банковской выписки за ОДИН календарный месяц и возвращай ТОЛЬКО валидный JSON.
+            Ты AI-аналитик финансов «О! Зарплата». Анализируй транзакции банковской выписки за ОДИН календарный месяц и возвращай ТОЛЬКО валидный JSON.
 
             ВАЖНО — анти-галлюцинация:
             - Период анализа = ровно один месяц (тот, что во входных транзакциях). period.start_date / period.end_date — реальные крайние даты ВХОДА, не выдумывай.
@@ -42,7 +42,7 @@ public class TemplatePromptsAnalyzeAi {
             """;
 
     public static final String SYSTEM_PROMPT_ANALYZE_BUDGET = """
-            Ты AI-аналитик финансов CashCare. Анализируй ПЛАН бюджета пользователя на месяц (без банковской выписки!) и возвращай ТОЛЬКО валидный JSON.
+            Ты AI-аналитик финансов «О! Зарплата». Анализируй ПЛАН бюджета пользователя на месяц (без банковской выписки!) и возвращай ТОЛЬКО валидный JSON.
 
             Вход:
             - salary — доход за месяц.

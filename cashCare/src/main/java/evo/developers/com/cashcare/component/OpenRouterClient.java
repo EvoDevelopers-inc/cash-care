@@ -36,7 +36,7 @@ public class OpenRouterClient {
         headers.setBearerAuth(apiKey);
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("HTTP-Referer", "https://cashcare.local");
-        headers.set("X-Title", "CashCare");
+        headers.set("X-Title", "О! Зарплата");
 
         HttpEntity<Map<String, Object>> request = buildRequest(systemPrompt, prompt, headers);
 

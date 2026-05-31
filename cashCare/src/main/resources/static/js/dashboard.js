@@ -12,8 +12,11 @@ const dashState = {
     salary: 0,
     others: null,
     plannedCategories: [],
-    salaryDirty: false
+    salaryDirty: false,
+    aiRefresh: null
 };
+
+let aiBudgetRunning = false;
 
 document.addEventListener("DOMContentLoaded", async () => {
     redirectIfGuest();
@@ -111,6 +114,7 @@ function applyOverview(overview) {
     dashState.plannedCategories = overview.plannedCategories || [];
     dashState.salaryDirty = false;
     dashState.aiAnalysis = overview.aiAnalysis || null;
+    dashState.aiRefresh = overview.aiRefresh || null;
     dashState.freePocket = Math.max(Number(overview.balance?.freePocket || 0), 0);
     dashState.canSave = Math.max(Number(overview.balance?.canSave || 0), 0);
 
@@ -121,6 +125,9 @@ function applyOverview(overview) {
     }
 
     renderOverview(overview);
+    if (typeof applySpontaneousFromOverview === "function") {
+        applySpontaneousFromOverview(overview);
+    }
 }
 
 function showProfileAlert(message) {
@@ -167,13 +174,13 @@ function bindFakeButtons() {
 function renderOverview(overview) {
     const ai = overview.aiAnalysis ? normalizeAiAnalysis(overview.aiAnalysis) : null;
 
-    renderMonthLabels();
+    renderMonthLabels(overview.currentMonth);
     renderAiStatusBanner(overview.aiRefresh, ai);
     renderPdfOnboard(ai);
     renderBalance(overview.balance, ai);
     renderMoodCard(overview.balance);
     renderDistribution(overview.balance, ai);
-    renderTopCategories(ai, overview.plannedCategories);
+    renderKlerkVacancies();
     renderAllCategories(ai, overview.plannedCategories);
     renderHealth(ai, overview.rating);
     renderTips(ai);
@@ -294,15 +301,28 @@ function capitalize(str) {
     return str ? str[0].toUpperCase() + str.slice(1) : str;
 }
 
-function renderMonthLabels() {
-    const monthName = getCurrentMonthName("nom");
-    const year = new Date().getFullYear();
+function formatMonthYearLabel(currentMonth, form) {
+    if (currentMonth && currentMonth.year && currentMonth.month) {
+        const idx = Number(currentMonth.month) - 1;
+        const year = currentMonth.year;
+        const name = form === "prep"
+            ? RU_MONTHS_PREP[idx]
+            : RU_MONTHS_NOM[idx];
+        return { name: capitalize(name), year, prep: RU_MONTHS_PREP[idx] };
+    }
+    const idx = new Date().getMonth();
+    const name = form === "prep" ? RU_MONTHS_PREP[idx] : RU_MONTHS_NOM[idx];
+    return { name: capitalize(name), year: new Date().getFullYear(), prep: RU_MONTHS_PREP[idx] };
+}
+
+function renderMonthLabels(currentMonth) {
+    const nom = formatMonthYearLabel(currentMonth, "nom");
     const balanceMonthEl = document.getElementById("balance-month-label");
-    if (balanceMonthEl) balanceMonthEl.textContent = `${monthName} ${year}`;
+    if (balanceMonthEl) balanceMonthEl.textContent = `${nom.name} ${nom.year}`;
 
     const subtitle = document.getElementById("dash-subtitle");
     if (subtitle) {
-        subtitle.textContent = `Бюджет на ${monthName.toLowerCase()} · план месяца и AI-анализ`;
+        subtitle.textContent = `Бюджет на ${nom.name.toLowerCase()} · план месяца и AI-анализ`;
     }
 }
 
@@ -566,9 +586,13 @@ function renderBalance(balance, ai) {
         moodEl.className = "mood-chip " + mood.className;
     }
 
-    const income = ai && ai.income ? ai.income : Number(balance?.salary || 0);
-    const expense = ai && ai.expense ? ai.expense : Number(balance?.plannedExpense || 0);
-    const free = income - expense;
+    const spontInc = Number(balance?.spontaneousIncome || 0);
+    const spontExp = Number(balance?.spontaneousExpense || 0);
+    const salary = Number(balance?.salary || 0);
+    const planned = Number(balance?.plannedExpense || 0);
+    const income = salary + spontInc;
+    const expense = planned + spontExp;
+    const free = Number(balance?.balance ?? balance?.canSave ?? (income - expense));
 
     setText("balance-amount", formatMoney(free));
     setText("balance-free", formatMoney(Math.max(free, 0)));
@@ -576,57 +600,87 @@ function renderBalance(balance, ai) {
     setText("balance-expense", formatMoney(expense));
     setText("chip-income", formatMoney(income));
     setText("chip-expense", `−${formatMoney(expense)}`);
+
+    const spontHint = document.getElementById("balance-spont-hint");
+    if (spontHint) {
+        if (spontInc > 0 || spontExp > 0) {
+            spontHint.classList.remove("hidden");
+            spontHint.textContent = `Вне плана: +${formatMoney(spontInc)} · −${formatMoney(spontExp)}`;
+        } else {
+            spontHint.classList.add("hidden");
+            spontHint.textContent = "";
+        }
+    }
 }
 
-function renderTopCategories(ai, planned) {
-    const list = document.getElementById("top-cat-list");
-    const nameEl = document.getElementById("top-cat-name");
-    if (!list || !nameEl) return;
-
-    if (ai && ai.categories.length) {
-        const sorted = [...ai.categories].filter((c) => c.amount > 0).sort((a, b) => b.amount - a.amount);
-        if (!sorted.length) {
-            nameEl.textContent = "—";
-            list.innerHTML = '<p class="text-xs text-slate-500">AI не нашёл существенных трат</p>';
-            return;
-        }
-        nameEl.textContent = sorted[0].categoryName;
-        list.innerHTML = sorted.slice(0, 4).map((c) => `
-            <div class="flex items-center justify-between rounded-xl bg-white/55 px-3 py-2.5">
-                <div>
-                    <div class="text-sm font-semibold">${escapeHtml(c.categoryName)}</div>
-                    <div class="text-[11px] text-slate-500">за этот месяц</div>
-                </div>
-                <div class="text-sm font-extrabold text-rose-600">−${formatMoney(c.amount)}</div>
-            </div>
-        `).join("");
-        return;
+const KLERK_VACANCIES_MOCK = [
+    {
+        title: "Бухгалтер на первичку",
+        company: "Клерк",
+        type: "employer",
+        salary: "85 000 – 95 000 ₽",
+        meta: "Москва · гибрид"
+    },
+    {
+        title: "Методист онлайн-курсов",
+        company: "Клерк",
+        type: "employer",
+        salary: "от 110 000 ₽",
+        meta: "Удалённо"
+    },
+    {
+        title: "Финансовый аналитик",
+        company: "Партнёр · EdTech",
+        type: "new_job",
+        salary: "120 000 – 140 000 ₽",
+        meta: "Полная занятость"
+    },
+    {
+        title: "Редактор раздела «Налоги»",
+        company: "Медиа-партнёр",
+        type: "new_job",
+        salary: "от 95 000 ₽",
+        meta: "Опыт от 2 лет"
+    },
+    {
+        title: "Консультант по зарплатному НДФЛ",
+        company: "Клерк · проекты",
+        type: "side_job",
+        salary: "3 000 ₽/час",
+        meta: "10–15 ч/мес · подработка"
+    },
+    {
+        title: "Верстальщик лендингов курсов",
+        company: "Клерк",
+        type: "side_job",
+        salary: "2 500 ₽/час",
+        meta: "Удалённо · по проектам"
     }
+];
 
-    if (planned && planned.length) {
-        const sorted = [...planned]
-            .filter((c) => Number(c.plannedAmount) > 0)
-            .sort((a, b) => Number(b.plannedAmount) - Number(a.plannedAmount));
-        if (!sorted.length) {
-            nameEl.textContent = "—";
-            list.innerHTML = '<p class="text-xs text-slate-500">Заполни планы по категориям</p>';
-            return;
-        }
-        nameEl.textContent = sorted[0].name;
-        list.innerHTML = sorted.slice(0, 4).map((c) => `
-            <div class="flex items-center justify-between rounded-xl bg-white/55 px-3 py-2.5">
-                <div>
-                    <div class="text-sm font-semibold">${escapeHtml(c.name)}</div>
-                    <div class="text-[11px] text-slate-500">плановая сумма</div>
+const KLERK_VACANCY_TYPE_LABELS = {
+    employer: "от работодателя",
+    new_job: "новая работа",
+    side_job: "подработка"
+};
+
+function renderKlerkVacancies() {
+    const list = document.getElementById("klerk-vacancies-list");
+    if (!list) return;
+
+    list.innerHTML = KLERK_VACANCIES_MOCK.map((v) => {
+        const badge = KLERK_VACANCY_TYPE_LABELS[v.type] || v.type;
+        return `
+            <article class="klerk-vacancy-item" role="listitem" data-vacancy-type="${escapeHtml(v.type)}">
+                <div class="klerk-vacancy-item__top">
+                    <span class="klerk-vacancy-badge klerk-vacancy-badge--${escapeHtml(v.type)}">${escapeHtml(badge)}</span>
+                    <span class="klerk-vacancy-salary">${escapeHtml(v.salary)}</span>
                 </div>
-                <div class="text-sm font-extrabold text-slate-700">${formatMoney(c.plannedAmount)}</div>
-            </div>
-        `).join("");
-        return;
-    }
-
-    nameEl.textContent = "Нет данных";
-    list.innerHTML = '<p class="text-xs text-slate-500">Заполни бюджет и загрузи PDF — здесь появятся топ траты.</p>';
+                <h3 class="klerk-vacancy-title">${escapeHtml(v.title)}</h3>
+                <p class="klerk-vacancy-meta">${escapeHtml(v.company)} · ${escapeHtml(v.meta)}</p>
+            </article>
+        `;
+    }).join("");
 }
 
 function renderAllCategories(ai, planned) {
@@ -772,9 +826,7 @@ function renderEmptyState() {
     setText("balance-expense", "0 ₽");
     setText("chip-income", "0 ₽");
     setText("chip-expense", "0 ₽");
-    setText("top-cat-name", "Нет данных");
-    const tcl = document.getElementById("top-cat-list");
-    if (tcl) tcl.innerHTML = '<p class="text-xs text-slate-500">Заполни бюджет — здесь появятся топ траты.</p>';
+    renderKlerkVacancies();
     const acl = document.getElementById("all-cats-list");
     if (acl) acl.innerHTML = '<p class="text-xs text-slate-500">Запусти AI-анализ выписки — категории появятся автоматически.</p>';
 }
@@ -819,6 +871,10 @@ function renderBudgetEditor() {
         sumFree.textContent = formatMoney(free);
         sumFree.classList.toggle("text-rose-600", free < 0);
         sumFree.classList.toggle("text-emerald-900", free >= 0);
+    }
+
+    if (typeof scheduleSyncBudgetHealthHeights === "function") {
+        scheduleSyncBudgetHealthHeights();
     }
 }
 
@@ -1117,10 +1173,42 @@ async function handleEditSurvey() {
     }
 }
 
-async function runBudgetAi() {
+function showAiRunOverlay(show) {
     const overlay = document.getElementById("ai-overlay");
+    if (!overlay) return;
+    if (show) {
+        overlay.classList.remove("hidden");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.classList.add("modal-open");
+    } else {
+        overlay.classList.add("hidden");
+        overlay.setAttribute("aria-hidden", "true");
+        if (!document.querySelector(".init-modal-overlay.open")) {
+            document.body.classList.remove("modal-open");
+        }
+    }
+}
+
+function setReuploadLoading(loading) {
+    const btn = document.getElementById("reupload-pdf-btn");
+    if (!btn || btn.classList.contains("is-locked")) return;
+    if (loading) {
+        btn.disabled = true;
+        btn.classList.add("is-loading");
+        btn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span id="reupload-pdf-btn-label">Обновляем AI...</span>';
+        return;
+    }
+    btn.classList.remove("is-loading");
+    renderAiRefresh(dashState.aiRefresh);
+}
+
+async function runBudgetAi() {
+    if (aiBudgetRunning) return;
+    aiBudgetRunning = true;
+
     const stepEl = document.getElementById("ai-overlay-step");
-    if (overlay) overlay.classList.remove("hidden");
+    showAiRunOverlay(true);
+    setReuploadLoading(true);
     if (stepEl) stepEl.textContent = "Считаем категории и распределение...";
 
     const t1 = setTimeout(() => stepEl && (stepEl.textContent = "Подбираем советы по плану..."), 6000);
@@ -1134,7 +1222,9 @@ async function runBudgetAi() {
     } finally {
         clearTimeout(t1);
         clearTimeout(t2);
-        if (overlay) overlay.classList.add("hidden");
+        aiBudgetRunning = false;
+        showAiRunOverlay(false);
+        setReuploadLoading(false);
     }
 }
 

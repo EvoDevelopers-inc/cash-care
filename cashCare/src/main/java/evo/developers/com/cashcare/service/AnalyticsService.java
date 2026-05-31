@@ -8,7 +8,10 @@ import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.Balanc
 import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.MonthBlock;
 import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.PlannedCategory;
 import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.ProfileBlock;
+import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.SpontaneousTransactionBlock;
+import evo.developers.com.cashcare.dto.response.SpontaneousTransactionResponse;
 import evo.developers.com.cashcare.entity.CategoryEntity;
+import evo.developers.com.cashcare.entity.SpontaneousTransactionEntity;
 import evo.developers.com.cashcare.entity.CreditEntity;
 import evo.developers.com.cashcare.entity.GoalEntity;
 import evo.developers.com.cashcare.entity.MonthlyFinances;
@@ -21,8 +24,10 @@ import evo.developers.com.cashcare.jpa.CreditRepository;
 import evo.developers.com.cashcare.jpa.GoalRepository;
 import evo.developers.com.cashcare.jpa.MonthlyFinancesRepository;
 import evo.developers.com.cashcare.jpa.ProfileAnalyzedAIRepository;
+import evo.developers.com.cashcare.jpa.SpontaneousTransactionRepository;
 import evo.developers.com.cashcare.jpa.UserRepository;
 import evo.developers.com.cashcare.model.AnalyzeAiProfile;
+import evo.developers.com.cashcare.model.SpontaneousTransactionType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,14 +35,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class AnalyticsService {
+
+    private static final ZoneId ZONE = ZoneId.of("Europe/Moscow");
 
     private final UserRepository userRepository;
     private final MonthlyFinancesRepository monthlyFinancesRepository;
@@ -49,6 +59,7 @@ public class AnalyticsService {
     private final AiAnalyzeService aiAnalyzeService;
     private final RedisService redisService;
     private final BudgetLockService budgetLockService;
+    private final SpontaneousTransactionRepository spontaneousTransactionRepository;
 
     @Transactional
     public AnalyzeAiProfile runBudgetAnalysis(String username) throws NotFoundException, ValidInputException {
@@ -316,7 +327,7 @@ public class AnalyticsService {
         response.setMessage("ok");
         response.setProfile(buildProfile(user));
 
-        MonthlyFinances current = monthlyFinancesRepository.findTopByUserOrderByYearDescMonthDesc(user).orElse(null);
+        MonthlyFinances current = resolveCalendarMonthFinances(user).orElse(null);
         if (current != null) {
             response.setCurrentMonth(buildMonth(current));
             response.setPlannedCategories(buildPlannedCategories(current));
@@ -330,6 +341,7 @@ public class AnalyticsService {
                 .orElse(null);
         response.setAiAnalysis(aiProfile != null ? AiAnalysisView.from(aiProfile) : null);
         response.setBalance(buildBalance(current, aiProfile, aiFreePocketPct));
+        response.setSpontaneousTransactions(buildSpontaneousTransactions(current));
         response.setAiRefresh(buildAiRefresh(user));
         response.setRating(buildRating(user));
 
@@ -493,10 +505,62 @@ public class AnalyticsService {
         }
     }
 
+    private Optional<MonthlyFinances> resolveCalendarMonthFinances(UserEntity user) {
+        YearMonth ym = YearMonth.now(ZONE);
+        return monthlyFinancesRepository.findByUserAndYearAndMonth(
+                user, ym.getYear(), ym.getMonthValue()
+        );
+    }
+
+    private List<SpontaneousTransactionEntity> spontaneousForCalendarMonth(MonthlyFinances mf) {
+        if (mf == null) {
+            return List.of();
+        }
+        YearMonth ym = YearMonth.of(mf.getYear(), mf.getMonth());
+        Instant from = ym.atDay(1).atStartOfDay(ZONE).toInstant();
+        Instant to = ym.plusMonths(1).atDay(1).atStartOfDay(ZONE).toInstant();
+        return spontaneousTransactionRepository
+                .findAllByMonthlyFinancesAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(
+                        mf, from, to
+                );
+    }
+
+    private List<SpontaneousTransactionBlock> buildSpontaneousTransactions(MonthlyFinances mf) {
+        return spontaneousForCalendarMonth(mf)
+                .stream()
+                .map(this::toSpontaneousBlock)
+                .toList();
+    }
+
+    private SpontaneousTransactionBlock toSpontaneousBlock(SpontaneousTransactionEntity entity) {
+        SpontaneousTransactionResponse dto = SpontaneousTransactionResponse.from(entity);
+        SpontaneousTransactionBlock block = new SpontaneousTransactionBlock();
+        block.setId(dto.getId());
+        block.setType(dto.getType() != null ? dto.getType().name() : null);
+        block.setTypeLabel(dto.getTypeLabel());
+        block.setAmount(dto.getAmount());
+        block.setNote(dto.getNote());
+        block.setCreatedAtLabel(dto.getCreatedAtLabel());
+        return block;
+    }
+
     private BalanceBlock buildBalance(MonthlyFinances mf, AnalyzeAiProfile ai, Double aiFreePocketPct) {
         BalanceBlock block = new BalanceBlock();
         BigDecimal salary = mf != null && mf.getSalary() != null ? mf.getSalary() : BigDecimal.ZERO;
         block.setSalary(salary);
+
+        BigDecimal spontaneousIncome = BigDecimal.ZERO;
+        BigDecimal spontaneousExpense = BigDecimal.ZERO;
+        for (SpontaneousTransactionEntity t : spontaneousForCalendarMonth(mf)) {
+            if (t.getAmount() == null || t.getType() == null) continue;
+            if (t.getType() == SpontaneousTransactionType.INCOME) {
+                spontaneousIncome = spontaneousIncome.add(t.getAmount());
+            } else {
+                spontaneousExpense = spontaneousExpense.add(t.getAmount());
+            }
+        }
+        block.setSpontaneousIncome(spontaneousIncome);
+        block.setSpontaneousExpense(spontaneousExpense);
 
         BigDecimal plannedExpense = BigDecimal.ZERO;
         BigDecimal requiredExpense = BigDecimal.ZERO;
@@ -517,7 +581,9 @@ public class AnalyticsService {
         block.setRequiredExpense(requiredExpense);
         block.setOptionalExpense(optionalExpense);
 
-        BigDecimal canSave = salary.subtract(plannedExpense);
+        BigDecimal effectiveIncome = salary.add(spontaneousIncome);
+        BigDecimal effectiveExpense = plannedExpense.add(spontaneousExpense);
+        BigDecimal canSave = effectiveIncome.subtract(effectiveExpense);
         block.setCanSave(canSave);
 
         BigDecimal savingsAmount;
@@ -540,8 +606,8 @@ public class AnalyticsService {
                     .multiply(BigDecimal.valueOf(pct / 100.0))
                     .setScale(0, java.math.RoundingMode.HALF_UP);
 
-            if (salary.compareTo(BigDecimal.ZERO) > 0) {
-                double leftoverRatio = canSave.doubleValue() / salary.doubleValue();
+            if (effectiveIncome.compareTo(BigDecimal.ZERO) > 0) {
+                double leftoverRatio = canSave.doubleValue() / effectiveIncome.doubleValue();
                 double floorPct = 0.03;
                 if (leftoverRatio > 0.50) floorPct = 0.08;
                 else if (leftoverRatio > 0.30) floorPct = 0.05;
@@ -586,7 +652,9 @@ public class AnalyticsService {
             saveStatusLabel = "Нет дохода";
             saveTip = "Укажи зарплату/доход — посчитаю, сколько можно отложить.";
         } else {
-            saveRatio = canSave.divide(salary, 4, java.math.RoundingMode.HALF_UP).doubleValue();
+            BigDecimal ratioBase = effectiveIncome.compareTo(BigDecimal.ZERO) > 0
+                    ? effectiveIncome : salary;
+            saveRatio = canSave.divide(ratioBase, 4, java.math.RoundingMode.HALF_UP).doubleValue();
 
             if (saveRatio >= 0.30) {
                 moodCode = "calm";

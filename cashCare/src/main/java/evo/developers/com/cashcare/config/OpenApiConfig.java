@@ -17,7 +17,7 @@ public class OpenApiConfig {
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("CashCare API")
+                        .title("О! Зарплата API")
                         .version("1.0"))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME))
                 .components(new Components()

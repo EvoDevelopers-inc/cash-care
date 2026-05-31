@@ -168,6 +168,23 @@ const CashCareApi = {
         return this.request("POST", `/api/goals/${id}/contribute`, payload, true);
     },
 
+    async getSpontaneous(monthlyFinancesId) {
+        return this.request(
+            "GET",
+            `/api/finances/spontaneous?monthlyFinancesId=${monthlyFinancesId}`,
+            undefined,
+            true
+        );
+    },
+
+    async createSpontaneous(payload) {
+        return this.request("POST", "/api/finances/spontaneous", payload, true);
+    },
+
+    async deleteSpontaneous(id) {
+        return this.request("DELETE", `/api/finances/spontaneous/${id}`, undefined, true);
+    },
+
     async submitInit(data) {
         return this.request("POST", "/api/finances/monthly/init", data, true);
     },

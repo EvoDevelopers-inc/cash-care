@@ -18,6 +18,7 @@ public class AnalyticsOverviewResponse extends Response {
     private AiAnalysisView aiAnalysis;
     private AiRefreshBlock aiRefresh;
     private RatingBlock rating;
+    private List<SpontaneousTransactionBlock> spontaneousTransactions;
 
     @Getter
     @Setter
@@ -57,8 +58,21 @@ public class AnalyticsOverviewResponse extends Response {
         private BigDecimal aiIncome;
         private BigDecimal aiExpense;
         private BigDecimal balance;
+        private BigDecimal spontaneousIncome;
+        private BigDecimal spontaneousExpense;
         private String moodCode;
         private String moodLabel;
+    }
+
+    @Getter
+    @Setter
+    public static class SpontaneousTransactionBlock {
+        private Long id;
+        private String type;
+        private String typeLabel;
+        private BigDecimal amount;
+        private String note;
+        private String createdAtLabel;
     }
 
     @Getter

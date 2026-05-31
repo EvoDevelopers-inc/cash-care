@@ -23,6 +23,107 @@ body {
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+/* ───── Клерк: мок вакансий (дашборд) ───── */
+.klerk-vacancies-brand {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 11px;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+    box-shadow: 0 4px 14px -4px rgba(220, 38, 38, 0.55);
+}
+
+.klerk-vacancies-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 2px;
+    scrollbar-width: thin;
+}
+
+.klerk-vacancy-item {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.58);
+    padding: 10px 12px;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+}
+
+.klerk-vacancy-item:hover {
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 6px 18px -12px rgba(15, 23, 42, 0.35);
+}
+
+.klerk-vacancy-item__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.klerk-vacancy-badge {
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.klerk-vacancy-badge--employer {
+    color: #9f1239;
+    background: rgba(244, 63, 94, 0.14);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.klerk-vacancy-badge--new_job {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.klerk-vacancy-badge--side_job {
+    color: #4338ca;
+    background: rgba(99, 102, 241, 0.14);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+}
+
+.klerk-vacancy-salary {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.klerk-vacancy-title {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: #0f172a;
+}
+
+.klerk-vacancy-meta {
+    margin-top: 2px;
+    font-size: 0.68rem;
+    color: #64748b;
+    line-height: 1.35;
+}
+
+.klerk-vacancies-more:focus-visible {
+    outline: 2px solid #f43f5e;
+    outline-offset: 2px;
+}
+
 /* ───── PDF onboarding card (dashboard) ───── */
 .pdf-onboard-icon {
     width: 40px;
@@ -380,6 +481,71 @@ body {
     margin: 0 auto;
 }
 
+.ai-loader--brand {
+    border-color: rgba(220, 38, 38, 0.15);
+    border-top-color: #dc2626;
+}
+
+/* ───── AI run overlay (дашборд: «Обновить AI») ───── */
+.ai-run-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.ai-run-overlay.hidden {
+    display: none;
+}
+
+.ai-run-overlay__card {
+    width: 100%;
+    max-width: 380px;
+    padding: 28px 24px 24px;
+    text-align: center;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 24px 60px -20px rgba(15, 23, 42, 0.45);
+}
+
+.ai-run-overlay__title {
+    margin-top: 18px;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+}
+
+.ai-run-overlay__step {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    font-weight: 600;
+    color: #475569;
+    min-height: 2.6em;
+}
+
+.ai-run-overlay__hint {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+#reupload-pdf-btn.is-loading {
+    opacity: 0.92;
+    pointer-events: none;
+}
+
+#reupload-pdf-btn.is-loading .spinner {
+    margin-right: 6px;
+}
+
 body.modal-open { overflow: hidden; }
 
 /* ───── Lucide icons sizing ───── */
@@ -412,7 +578,10 @@ svg.lc-xl { width: 36px; height: 36px; }
     padding: 14px 18px;
     border-radius: 20px;
     border: 1.5px solid;
-    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    box-shadow: 0 8px 28px -14px rgba(15, 23, 42, 0.22);
     transition: all 0.2s ease;
 }
 .ai-status.hidden { display: none; }
@@ -450,37 +619,76 @@ svg.lc-xl { width: 36px; height: 36px; }
 
 /* state: locked (AI уже сделан, бюджет на замке) — спокойный фиолет */
 .ai-status.state-locked {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.10), rgba(168, 85, 247, 0.08));
-    border-color: rgba(99, 102, 241, 0.28);
+    background: linear-gradient(135deg, rgba(238, 242, 255, 0.97), rgba(245, 243, 255, 0.95));
+    border-color: rgba(99, 102, 241, 0.35);
 }
-.ai-status.state-locked .ai-status-title { color: rgb(49, 46, 129); }
-.ai-status.state-locked .ai-status-meta  { color: rgb(79, 70, 229); }
-.ai-status.state-locked .ai-status-cta   { color: rgb(67, 56, 202); }
-.ai-status.state-locked .ai-status-emoji { color: rgb(79, 70, 229); }
+.ai-status.state-locked .ai-status-title { color: #1e1b4b; }
+.ai-status.state-locked .ai-status-meta  { color: #3730a3; }
+.ai-status.state-locked .ai-status-cta   { color: #312e81; }
+.ai-status.state-locked .ai-status-emoji { color: #4f46e5; }
 
 /* state: ready (AI ещё не запускался) — призывный изумруд */
 .ai-status.state-ready {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(20, 184, 166, 0.08));
-    border-color: rgba(16, 185, 129, 0.32);
+    background: linear-gradient(135deg, rgba(236, 253, 245, 0.97), rgba(240, 253, 250, 0.95));
+    border-color: rgba(16, 185, 129, 0.38);
 }
-.ai-status.state-ready .ai-status-title { color: rgb(6, 78, 59); }
-.ai-status.state-ready .ai-status-meta  { color: rgb(4, 120, 87); }
-.ai-status.state-ready .ai-status-cta   { color: rgb(5, 150, 105); }
-.ai-status.state-ready .ai-status-emoji { color: rgb(5, 150, 105); }
+.ai-status.state-ready .ai-status-title { color: #064e3b; }
+.ai-status.state-ready .ai-status-meta  { color: #047857; }
+.ai-status.state-ready .ai-status-cta   { color: #065f46; }
+.ai-status.state-ready .ai-status-emoji { color: #059669; }
 
 /* state: refresh (AI был, кулдаун прошёл — пора обновить) — янтарь */
 .ai-status.state-refresh {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(249, 115, 22, 0.10));
-    border-color: rgba(251, 146, 60, 0.36);
+    background: linear-gradient(135deg, rgba(255, 251, 235, 0.97), rgba(255, 237, 213, 0.95));
+    border-color: rgba(251, 146, 60, 0.42);
 }
-.ai-status.state-refresh .ai-status-title { color: rgb(120, 53, 15); }
-.ai-status.state-refresh .ai-status-meta  { color: rgb(154, 52, 18); }
-.ai-status.state-refresh .ai-status-cta   { color: rgb(180, 83, 9); }
-.ai-status.state-refresh .ai-status-emoji { color: rgb(180, 83, 9); }
+.ai-status.state-refresh .ai-status-title { color: #78350f; }
+.ai-status.state-refresh .ai-status-meta  { color: #9a3412; }
+.ai-status.state-refresh .ai-status-cta   { color: #92400e; }
+.ai-status.state-refresh .ai-status-emoji { color: #b45309; }
 
 @media (max-width: 640px) {
-    .ai-status { padding: 12px 14px; }
-    .ai-status-cta { text-align: left; max-width: none; flex: 1 0 100%; }
+    .dash-header {
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        box-shadow: 0 6px 22px -12px rgba(15, 23, 42, 0.2);
+    }
+
+    .dash-header h1 {
+        color: #0f172a;
+    }
+
+    #dash-subtitle {
+        color: #334155 !important;
+        font-weight: 600;
+        line-height: 1.45;
+    }
+
+    .ai-status {
+        padding: 12px 14px;
+        background-color: rgba(255, 255, 255, 0.96) !important;
+        border-width: 2px;
+    }
+
+    .ai-status-title {
+        font-size: 16px;
+    }
+
+    .ai-status-meta,
+    .ai-status-cta {
+        font-size: 13px;
+        line-height: 1.45;
+    }
+
+    .ai-status-cta {
+        text-align: left;
+        max-width: none;
+        flex: 1 0 100%;
+        font-weight: 700;
+    }
+
     .ai-status-emoji { font-size: 24px; }
 }
 
@@ -629,14 +837,32 @@ svg.lc-xl { width: 36px; height: 36px; }
 }
 
 #reupload-pdf-btn.is-locked {
-    background: rgba(148, 163, 184, 0.18) !important;
-    color: #64748b !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+    color: #0f172a !important;
+    border: 1.5px solid rgba(100, 116, 139, 0.45) !important;
     cursor: not-allowed;
-    box-shadow: none;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+    font-weight: 700;
 }
 #reupload-pdf-btn.is-locked:hover {
     transform: none;
-    background: rgba(148, 163, 184, 0.18) !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+}
+
+@media (max-width: 640px) {
+    #reupload-pdf-btn.is-locked {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border-color: #94a3b8 !important;
+        font-size: 0.9rem;
+        letter-spacing: -0.01em;
+    }
+
+    #reupload-pdf-btn.is-locked .lc,
+    #reupload-pdf-btn.is-locked svg {
+        color: #334155;
+        stroke: #334155;
+    }
 }
 
 .sidebar-logo {
@@ -650,20 +876,13 @@ svg.lc-xl { width: 36px; height: 36px; }
 }
 
 .sidebar-logo img {
-    height: 130px;
+    height: 200px;
     width: auto;
     max-width: none;
     object-fit: contain;
     filter: contrast(1.05);
 }
 
-@media (max-width: 1100px) {
-    .sidebar-logo {
-        height: 38px;
-        margin: 0;
-    }
-    .sidebar-logo img { height: 88px; }
-}
 
 /* AI summary inside dashboard sidebar */
 .ai-mini-list {
@@ -775,7 +994,7 @@ svg.lc-xl { width: 36px; height: 36px; }
     .dash-header .dash-header-actions { width: 100%; }
     .dash-header #reupload-pdf-btn { width: 100%; text-align: center; }
     #balance-amount { font-size: 2.05rem !important; line-height: 1; }
-    #top-cat-name, #mood-title { font-size: 1.4rem !important; }
+    #klerk-vacancies-title, #mood-title { font-size: 1.4rem !important; }
 
     /* health card don't clamp height */
     section.glass.max-h-64 { max-height: none !important; }
@@ -862,7 +1081,7 @@ svg.lc-xl { width: 36px; height: 36px; }
     .dash-header h1 { font-size: 1.2rem !important; }
     .dash-header p { font-size: 0.78rem; }
     #balance-amount { font-size: 1.7rem !important; }
-    #top-cat-name, #mood-title { font-size: 1.2rem !important; }
+    #klerk-vacancies-title, #mood-title { font-size: 1.2rem !important; }
 
     .pill { padding: 4px 9px; font-size: 0.72rem; }
 
@@ -1629,4 +1848,168 @@ svg.lc-xl { width: 36px; height: 36px; }
 /* sidebar count badge tweak */
 #sidebar-goals-count {
     margin-left: 2px;
+}
+
+@media (min-width: 1024px) {
+    .budget-health-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: stretch;
+    }
+
+    .budget-health-grid > .budget-month-card,
+    .budget-health-grid > .health-spont-column {
+        height: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .health-spont-column {
+        flex: 1 1 auto;
+    }
+
+    .spontaneous-panel {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .spontaneous-list-body {
+        box-sizing: border-box;
+        overflow: hidden;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.42);
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        padding: 6px;
+    }
+
+    .spontaneous-empty {
+        height: 100%;
+        min-height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0;
+        border: none;
+        background: transparent;
+        box-sizing: border-box;
+    }
+
+    .spontaneous-list {
+        height: 100%;
+        max-height: 100%;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        box-sizing: border-box;
+    }
+}
+
+.spontaneous-panel {
+    border-radius: 16px;
+}
+
+.spontaneous-type-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    transition: 0.15s ease;
+}
+
+.spontaneous-type-btn-income {
+    background: rgba(209, 250, 229, 0.75);
+    color: #047857;
+}
+.spontaneous-type-btn-income:hover {
+    background: rgba(167, 243, 208, 0.95);
+}
+
+.spontaneous-type-btn-expense {
+    background: rgba(255, 228, 230, 0.8);
+    color: #be123c;
+}
+.spontaneous-type-btn-expense:hover {
+    background: rgba(254, 205, 211, 0.95);
+}
+
+.spontaneous-type-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.spontaneous-form input {
+    font-size: 16px;
+}
+
+.spontaneous-list {
+    overflow-y: auto;
+}
+
+@media (max-width: 1023.98px) {
+    .spontaneous-list-body {
+        min-height: 0;
+    }
+
+    .spontaneous-list {
+        max-height: 250px;
+    }
+}
+
+.spontaneous-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.55);
+    padding: 8px 8px 8px 10px;
+}
+
+.spontaneous-row-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.spontaneous-row-income .spontaneous-row-main i { color: #059669; }
+.spontaneous-row-expense .spontaneous-row-main i { color: #e11d48; }
+
+.spontaneous-row-amount {
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.spontaneous-row-income .spontaneous-row-amount { color: #047857; }
+.spontaneous-row-expense .spontaneous-row-amount { color: #be123c; }
+
+.spontaneous-row-del {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(148, 163, 184, 0.15);
+    color: #64748b;
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+.spontaneous-row-del:hover {
+    background: rgba(244, 63, 94, 0.15);
+    color: #e11d48;
 }

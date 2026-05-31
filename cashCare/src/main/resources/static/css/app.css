@@ -4,8 +4,8 @@
     --surface-border: rgba(255, 255, 255, 0.08);
     --text: #eef2f7;
     --muted: #8b98a8;
-    --accent: #34d399;
-    --accent-dark: #059669;
+    --accent: #e30613;
+    --accent-dark: #b91c1c;
     --danger: #f87171;
     --warning: #fbbf24;
     --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
@@ -21,9 +21,9 @@ body {
     font-family: "Plus Jakarta Sans", system-ui, sans-serif;
     color: var(--text);
     background:
-        radial-gradient(circle at 15% 20%, rgba(52, 211, 153, 0.14), transparent 28%),
-        radial-gradient(circle at 85% 10%, rgba(59, 130, 246, 0.12), transparent 24%),
-        radial-gradient(circle at 50% 100%, rgba(16, 185, 129, 0.08), transparent 35%),
+        radial-gradient(circle at 15% 20%, rgba(227, 6, 19, 0.12), transparent 28%),
+        radial-gradient(circle at 85% 10%, rgba(248, 113, 113, 0.1), transparent 24%),
+        radial-gradient(circle at 50% 100%, rgba(185, 28, 28, 0.08), transparent 35%),
         var(--bg);
 }
 
@@ -66,8 +66,8 @@ body {
     gap: 8px;
     padding: 8px 14px;
     border-radius: 999px;
-    border: 1px solid rgba(52, 211, 153, 0.25);
-    background: rgba(52, 211, 153, 0.08);
+    border: 1px solid rgba(227, 6, 19, 0.25);
+    background: rgba(227, 6, 19, 0.08);
     color: #a7f3d0;
     font-size: 13px;
     font-weight: 600;
@@ -81,7 +81,7 @@ body {
 }
 
 .hero-title span {
-    background: linear-gradient(135deg, #6ee7b7, #34d399 45%, #22d3ee);
+    background: linear-gradient(135deg, #fca5a5, #e30613 45%, #ffffff);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -113,7 +113,7 @@ body {
     height: 10px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--accent), #22d3ee);
-    box-shadow: 0 0 18px rgba(52, 211, 153, 0.55);
+    box-shadow: 0 0 18px rgba(227, 6, 19, 0.55);
     flex-shrink: 0;
 }
 
@@ -156,9 +156,9 @@ body {
 }
 
 .tab-btn.active {
-    background: linear-gradient(135deg, rgba(52, 211, 153, 0.18), rgba(34, 211, 238, 0.12));
+    background: linear-gradient(135deg, rgba(227, 6, 19, 0.18), rgba(248, 113, 113, 0.12));
     color: var(--text);
-    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.25);
+    box-shadow: inset 0 0 0 1px rgba(227, 6, 19, 0.25);
 }
 
 .form-panel {
@@ -223,8 +223,8 @@ input::placeholder {
 
 input:focus,
 select:focus {
-    border-color: rgba(52, 211, 153, 0.45);
-    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.12);
+    border-color: rgba(227, 6, 19, 0.45);
+    box-shadow: 0 0 0 4px rgba(227, 6, 19, 0.12);
 }
 
 .btn {
@@ -250,13 +250,13 @@ select:focus {
 
 .btn-primary {
     color: #052e1f;
-    background: linear-gradient(135deg, #6ee7b7, #34d399);
-    box-shadow: 0 12px 30px rgba(52, 211, 153, 0.25);
+    background: linear-gradient(135deg, #fca5a5, #e30613);
+    box-shadow: 0 12px 30px rgba(227, 6, 19, 0.25);
 }
 
 .btn-primary:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 16px 36px rgba(52, 211, 153, 0.32);
+    box-shadow: 0 16px 36px rgba(227, 6, 19, 0.32);
 }
 
 .btn-ghost {
@@ -289,8 +289,8 @@ select:focus {
 
 .alert-success {
     color: #bbf7d0;
-    background: rgba(52, 211, 153, 0.12);
-    border: 1px solid rgba(52, 211, 153, 0.25);
+    background: rgba(227, 6, 19, 0.12);
+    border: 1px solid rgba(227, 6, 19, 0.25);
 }
 
 .topbar {
@@ -302,8 +302,8 @@ select:focus {
 }
 
 .badge-auth {
-    border-color: rgba(34, 211, 238, 0.25);
-    background: rgba(34, 211, 238, 0.08);
+    border-color: rgba(248, 113, 113, 0.25);
+    background: rgba(248, 113, 113, 0.08);
     color: #a5f3fc;
 }
 
@@ -314,13 +314,13 @@ select:focus {
 }
 
 .page-guest .hero-title span {
-    background: linear-gradient(135deg, #6ee7b7, #34d399 45%, #22d3ee);
+    background: linear-gradient(135deg, #fca5a5, #e30613 45%, #ffffff);
 }
 
 body.page-auth {
     background:
-        radial-gradient(circle at 80% 15%, rgba(34, 211, 238, 0.12), transparent 24%),
-        radial-gradient(circle at 20% 80%, rgba(52, 211, 153, 0.1), transparent 30%),
+        radial-gradient(circle at 80% 15%, rgba(248, 113, 113, 0.12), transparent 24%),
+        radial-gradient(circle at 20% 80%, rgba(227, 6, 19, 0.1), transparent 30%),
         var(--bg);
 }
 
@@ -486,8 +486,8 @@ body.modal-open {
     margin: 24px 0;
     padding: 18px;
     border-radius: 18px;
-    background: rgba(52, 211, 153, 0.06);
-    border: 1px solid rgba(52, 211, 153, 0.15);
+    background: rgba(227, 6, 19, 0.06);
+    border: 1px solid rgba(227, 6, 19, 0.15);
 }
 
 .preview-label {
@@ -521,7 +521,7 @@ body.modal-open {
     gap: 6px;
     padding: 18px;
     border-radius: 16px;
-    border: 1px dashed rgba(52, 211, 153, 0.35);
+    border: 1px dashed rgba(227, 6, 19, 0.35);
     background: rgba(255, 255, 255, 0.03);
     cursor: pointer;
     transition: border-color 0.2s ease, background 0.2s ease;
@@ -529,8 +529,8 @@ body.modal-open {
 
 .file-drop:hover,
 .file-drop.dragover {
-    border-color: rgba(52, 211, 153, 0.7);
-    background: rgba(52, 211, 153, 0.08);
+    border-color: rgba(227, 6, 19, 0.7);
+    background: rgba(227, 6, 19, 0.08);
 }
 
 .file-drop input[type="file"] {
@@ -583,8 +583,8 @@ body.modal-open {
 .ai-loading-ring {
     width: 52px;
     height: 52px;
-    border: 3px solid rgba(52, 211, 153, 0.15);
-    border-top-color: #34d399;
+    border: 3px solid rgba(227, 6, 19, 0.15);
+    border-top-color: #e30613;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -697,7 +697,7 @@ body.modal-open {
 .ai-progress-bar {
     height: 100%;
     border-radius: inherit;
-    background: linear-gradient(135deg, #6ee7b7, #34d399);
+    background: linear-gradient(135deg, #fca5a5, #e30613);
 }
 
 .ai-category-meta {
@@ -715,8 +715,8 @@ body.modal-open {
 .ai-chip {
     padding: 8px 12px;
     border-radius: 999px;
-    background: rgba(34, 211, 238, 0.1);
-    border: 1px solid rgba(34, 211, 238, 0.18);
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.18);
     font-size: 0.88rem;
 }
 
@@ -740,8 +740,8 @@ body.modal-open {
 .ai-suggested-row {
     padding: 14px;
     border-radius: 14px;
-    background: rgba(34, 211, 238, 0.06);
-    border: 1px solid rgba(34, 211, 238, 0.16);
+    background: rgba(248, 113, 113, 0.06);
+    border: 1px solid rgba(248, 113, 113, 0.16);
 }
 
 .ai-suggested-reason {

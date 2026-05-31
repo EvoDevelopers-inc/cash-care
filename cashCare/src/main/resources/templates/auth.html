@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CashCare — Вход</title>
+    <title>О! Зарплата — Вход</title>
     <link rel="icon" type="image/png" href="/images/logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,36 +20,36 @@
             }
         };
     </script>
-    <link rel="stylesheet" href="/css/auth.css?v=3">
+    <link rel="stylesheet" href="/css/auth.css?v=4">
     <script src="/js/sdkClient.js" defer></script>
     <script src="/js/common.js" defer></script>
     <script src="/js/auth.js" defer></script>
 </head>
-<body class="bg-[url(/images/bg.png)] h-screen w-screen min-h-screen font-sans text-white antialiased">
+<body class="h-screen w-screen min-h-screen font-sans antialiased">
 
 <div class="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
-    <div class="pointer-events-none absolute inset-0 bg-slate-950/45"></div>
+    <div class="auth-overlay pointer-events-none absolute inset-0"></div>
 
     <div class="relative w-full max-w-[440px]">
         <div class="mb-8 text-center">
             <div class="auth-logo-wrap">
-                <img src="/images/logo.png" alt="CashCare">
+                <img src="/images/logo.png" alt="О! Зарплата">
             </div>
-            <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">
-                Финансы <span class="bg-gradient-to-r from-emerald-300 via-emerald-400 to-cyan-400 bg-clip-text text-transparent">под контролем</span>
+            <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                Финансы <span class="auth-hero-accent">под контролем</span>
             </h1>
-            <p class="mt-3 text-sm leading-relaxed text-slate-300/90 sm:text-base">
+            <p class="auth-hero-sub mt-3 text-sm leading-relaxed sm:text-base">
                 Войди или создай аккаунт — бюджет настроим сразу после регистрации
             </p>
         </div>
 
-        <div class="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/75 shadow-2xl shadow-black/50 backdrop-blur-xl">
-            <div class="border-b border-white/10 px-6 pb-5 pt-6">
-                <div class="grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.04] p-1.5">
-                    <button type="button" class="tab-btn active rounded-xl px-4 py-2.5 text-sm font-bold text-slate-400 transition-all duration-200 hover:text-white" data-tab="login">
+        <div class="auth-card overflow-hidden rounded-3xl backdrop-blur-xl">
+            <div class="border-b border-red-100 px-6 pb-5 pt-6">
+                <div class="auth-tabs-wrap grid grid-cols-2 gap-1 rounded-2xl p-1.5">
+                    <button type="button" class="tab-btn active rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200" data-tab="login">
                         Вход
                     </button>
-                    <button type="button" class="tab-btn rounded-xl px-4 py-2.5 text-sm font-bold text-slate-400 transition-all duration-200 hover:text-white" data-tab="register">
+                    <button type="button" class="tab-btn rounded-xl px-4 py-2.5 text-sm font-bold transition-all duration-200" data-tab="register">
                         Регистрация
                     </button>
                 </div>
@@ -58,17 +58,17 @@
             <div class="px-6 pb-6 pt-5">
                 <form id="login-form" class="auth-panel space-y-4">
                     <div>
-                        <label for="login-input" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Email или username</label>
+                        <label for="login-input" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Email или username</label>
                         <input id="login-input" type="text" autocomplete="username" required placeholder="user@mail.com"
-                               class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                               class="auth-input w-full rounded-xl px-4 py-3 text-sm transition">
                     </div>
                     <div>
-                        <label for="login-password" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Пароль</label>
+                        <label for="login-password" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Пароль</label>
                         <input id="login-password" type="password" autocomplete="current-password" required placeholder="••••••••"
-                               class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                               class="auth-input w-full rounded-xl px-4 py-3 text-sm transition">
                     </div>
                     <button id="login-btn" type="submit"
-                            class="mt-2 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-900/30 transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.99]">
+                            class="auth-submit mt-2 flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold transition">
                         Войти
                     </button>
                     <div id="login-alert" class="alert"></div>
@@ -77,50 +77,49 @@
                 <form id="register-form" class="auth-panel hidden space-y-4">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="reg-first-name" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Имя</label>
+                            <label for="reg-first-name" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Имя</label>
                             <input id="reg-first-name" type="text" required placeholder="Иван"
-                                   class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                                   class="auth-input w-full rounded-xl px-3 py-3 text-sm transition">
                         </div>
                         <div>
-                            <label for="reg-last-name" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Фамилия</label>
+                            <label for="reg-last-name" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Фамилия</label>
                             <input id="reg-last-name" type="text" required placeholder="Иванов"
-                                   class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                                   class="auth-input w-full rounded-xl px-3 py-3 text-sm transition">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="reg-username" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Username</label>
+                            <label for="reg-username" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Username</label>
                             <input id="reg-username" type="text" required placeholder="ivan_care"
-                                   class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                                   class="auth-input w-full rounded-xl px-3 py-3 text-sm transition">
                         </div>
                         <div>
-                            <label for="reg-email" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Email</label>
+                            <label for="reg-email" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Email</label>
                             <input id="reg-email" type="email" required placeholder="ivan@mail.com"
-                                   class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                                   class="auth-input w-full rounded-xl px-3 py-3 text-sm transition">
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="reg-age" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Возраст</label>
+                            <label for="reg-age" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Возраст</label>
                             <input id="reg-age" type="number" min="18" value="18" required
-                                   class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 text-sm text-white outline-none transition focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                                   class="auth-input w-full rounded-xl px-3 py-3 text-sm transition">
                         </div>
                         <div>
-                            <label for="reg-gender" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Пол</label>
-                            <select id="reg-gender" required
-                                    class="w-full rounded-xl border border-white/10 bg-slate-900/80 px-3 py-3 text-sm text-white outline-none transition focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                            <label for="reg-gender" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Пол</label>
+                            <select id="reg-gender" required class="auth-select w-full rounded-xl px-3 py-3 text-sm transition">
                                 <option value="MALE">Мужской</option>
                                 <option value="FEMALE">Женский</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label for="reg-password" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-400">Пароль</label>
+                        <label for="reg-password" class="auth-label mb-1.5 block text-xs font-semibold uppercase tracking-wide">Пароль</label>
                         <input id="reg-password" type="password" autocomplete="new-password" required placeholder="минимум 6 символов"
-                               class="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-emerald-400/50 focus:ring-4 focus:ring-emerald-400/10">
+                               class="auth-input w-full rounded-xl px-4 py-3 text-sm transition">
                     </div>
                     <button id="register-btn" type="submit"
-                            class="mt-2 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-900/30 transition hover:from-emerald-400 hover:to-emerald-500 active:scale-[0.99]">
+                            class="auth-submit mt-2 flex w-full items-center justify-center rounded-xl px-4 py-3.5 text-sm font-bold transition">
                         Создать аккаунт
                     </button>
                     <div id="register-alert" class="alert"></div>
