@@ -9,12 +9,16 @@ import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.MonthB
 import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.PlannedCategory;
 import evo.developers.com.cashcare.dto.response.AnalyticsOverviewResponse.ProfileBlock;
 import evo.developers.com.cashcare.entity.CategoryEntity;
+import evo.developers.com.cashcare.entity.CreditEntity;
+import evo.developers.com.cashcare.entity.GoalEntity;
 import evo.developers.com.cashcare.entity.MonthlyFinances;
 import evo.developers.com.cashcare.entity.ProfileAnalyzedAIEntity;
 import evo.developers.com.cashcare.entity.UserEntity;
 import evo.developers.com.cashcare.exception.NotFoundException;
 import evo.developers.com.cashcare.exception.ValidInputException;
 import evo.developers.com.cashcare.jpa.CategoryRepository;
+import evo.developers.com.cashcare.jpa.CreditRepository;
+import evo.developers.com.cashcare.jpa.GoalRepository;
 import evo.developers.com.cashcare.jpa.MonthlyFinancesRepository;
 import evo.developers.com.cashcare.jpa.ProfileAnalyzedAIRepository;
 import evo.developers.com.cashcare.jpa.UserRepository;
@@ -24,11 +28,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,33 +39,28 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AnalyticsService {
 
-    private static final ZoneId ZONE = ZoneId.of("Europe/Moscow");
-    private static final DateTimeFormatter HUMAN_DATE = DateTimeFormatter.ofPattern("d MMMM");
-
     private final UserRepository userRepository;
     private final MonthlyFinancesRepository monthlyFinancesRepository;
     private final CategoryRepository categoryRepository;
+    private final CreditRepository creditRepository;
+    private final GoalRepository goalRepository;
     private final ProfileAnalyzedAIRepository profileAnalyzedAIRepository;
     private final JsonHelper jsonHelper;
     private final AiAnalyzeService aiAnalyzeService;
+    private final RedisService redisService;
+    private final BudgetLockService budgetLockService;
 
     @Transactional
     public AnalyzeAiProfile runBudgetAnalysis(String username) throws NotFoundException, ValidInputException {
         UserEntity user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        ProfileAnalyzedAIEntity existing = profileAnalyzedAIRepository.findByUser(user).orElse(null);
-        if (existing != null && existing.getUpdatedAt() != null
-                && existing.getRecommendedFreePocketPct() != null) {
-            YearMonth lastRun = YearMonth.from(existing.getUpdatedAt().atZone(ZONE).toLocalDate());
-            YearMonth currentMonth = YearMonth.now(ZONE);
-            if (!lastRun.isBefore(currentMonth)) {
-                LocalDate nextDate = currentMonth.plusMonths(1).atDay(1);
-                throw new ValidInputException(
-                        "AI-анализ уже был в этом месяце. Следующий — " + nextDate.format(HUMAN_DATE.withLocale(new java.util.Locale("ru"))),
-                        List.of("ai already analyzed this month")
-                );
-            }
+        BudgetLockService.LockState state = budgetLockService.getLockState(user);
+        if (state.isLocked()) {
+            throw new ValidInputException(
+                    "AI-анализ уже был в этом месяце. Следующий — " + state.unlockAtHuman(),
+                    List.of("ai cooldown active")
+            );
         }
 
         MonthlyFinances mf = monthlyFinancesRepository.findTopByUserOrderByYearDescMonthDesc(user)
@@ -108,9 +104,206 @@ public class AnalyticsService {
         payload.put("currency", "RUB");
         payload.put("categories", categoryPayload);
         payload.put("leftover_total", leftover);
+        payload.put("user_profile", buildSurveyPayload(user));
+
+        Map<String, Object> actual = buildActualSpendingPayload(user);
+        if (actual != null) {
+            payload.put("actual_spending", actual);
+        }
+
+        Map<String, Object> credits = buildCreditsPayload(user, salary);
+        if (credits != null) {
+            payload.put("credits", credits);
+        }
+
+        Map<String, Object> goals = buildGoalsPayload(user, salary, leftover);
+        if (goals != null) {
+            payload.put("goals", goals);
+        }
 
         String json = jsonHelper.toJson(payload);
         return aiAnalyzeService.analyzeBudget(username, json);
+    }
+
+    private Map<String, Object> buildGoalsPayload(UserEntity user, BigDecimal salary, BigDecimal leftover) {
+        List<GoalEntity> goals = goalRepository.findAllByUserOrderByCreatedAtAsc(user);
+        if (goals == null || goals.isEmpty()) return null;
+
+        BigDecimal totalTarget = BigDecimal.ZERO;
+        BigDecimal totalSaved = BigDecimal.ZERO;
+        BigDecimal totalRemaining = BigDecimal.ZERO;
+        int active = 0;
+        int completed = 0;
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Instant now = Instant.now();
+        for (GoalEntity g : goals) {
+            BigDecimal target = g.getTargetAmount() != null ? g.getTargetAmount() : BigDecimal.ZERO;
+            BigDecimal saved  = g.getSavedAmount()  != null ? g.getSavedAmount()  : BigDecimal.ZERO;
+            BigDecimal remaining = target.subtract(saved);
+            if (remaining.compareTo(BigDecimal.ZERO) < 0) remaining = BigDecimal.ZERO;
+            boolean done = g.getCompletedAt() != null || saved.compareTo(target) >= 0;
+
+            totalTarget = totalTarget.add(target);
+            totalSaved  = totalSaved.add(saved);
+            totalRemaining = totalRemaining.add(remaining);
+            if (done) completed++; else active++;
+
+            int progressPct = 0;
+            if (target.compareTo(BigDecimal.ZERO) > 0) {
+                progressPct = saved.multiply(BigDecimal.valueOf(100))
+                        .divide(target, 0, java.math.RoundingMode.FLOOR).intValue();
+                if (progressPct > 100) progressPct = 100;
+            }
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("title", g.getTitle());
+            row.put("category", g.getCategory() != null ? g.getCategory().name() : null);
+            row.put("category_label", g.getCategory() != null ? g.getCategory().getLabel() : null);
+            row.put("target_amount", target);
+            row.put("saved_amount", saved);
+            row.put("remaining_amount", remaining);
+            row.put("progress_pct", progressPct);
+            row.put("completed", done);
+
+            if (g.getTargetDate() != null) {
+                long days = Duration.between(now, g.getTargetDate()).toDays();
+                int monthsLeft = (int) Math.max(1, Math.round(days / 30.0));
+                row.put("months_until_target_date", monthsLeft);
+                if (!done && monthsLeft > 0) {
+                    BigDecimal needPerMonth = remaining.divide(
+                            BigDecimal.valueOf(monthsLeft), 0, java.math.RoundingMode.CEILING
+                    );
+                    row.put("required_monthly_to_meet_deadline", needPerMonth);
+                }
+            }
+
+            rows.add(row);
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("items", rows);
+        payload.put("active_count", active);
+        payload.put("completed_count", completed);
+        payload.put("total_target_amount", totalTarget);
+        payload.put("total_saved_amount", totalSaved);
+        payload.put("total_remaining_amount", totalRemaining);
+
+        if (leftover != null && leftover.compareTo(BigDecimal.ZERO) > 0
+                && totalRemaining.compareTo(BigDecimal.ZERO) > 0) {
+            double monthsAllNeeded = totalRemaining.doubleValue() / leftover.doubleValue();
+            payload.put("months_to_finish_all_at_current_leftover", Math.round(monthsAllNeeded * 10.0) / 10.0);
+        }
+        if (salary != null && salary.compareTo(BigDecimal.ZERO) > 0
+                && totalRemaining.compareTo(BigDecimal.ZERO) > 0) {
+            double pct = totalRemaining.doubleValue() / salary.doubleValue() * 100.0;
+            payload.put("total_remaining_to_salary_pct", Math.round(pct * 10.0) / 10.0);
+        }
+
+        return payload;
+    }
+
+    private Map<String, Object> buildCreditsPayload(UserEntity user, BigDecimal salary) {
+        List<CreditEntity> credits = creditRepository.findAllByUserOrderByIdAsc(user);
+        if (credits == null || credits.isEmpty()) return null;
+
+        BigDecimal totalBalance = BigDecimal.ZERO;
+        BigDecimal totalMonthly = BigDecimal.ZERO;
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        for (CreditEntity c : credits) {
+            BigDecimal balance = c.getBalance() != null ? c.getBalance() : BigDecimal.ZERO;
+            BigDecimal monthly = c.getMonthlyPayment() != null ? c.getMonthlyPayment() : BigDecimal.ZERO;
+            totalBalance = totalBalance.add(balance);
+            totalMonthly = totalMonthly.add(monthly);
+
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("name", c.getName());
+            row.put("type", c.getType() != null ? c.getType().getLabel() : null);
+            row.put("balance", balance);
+            row.put("monthly_payment", monthly);
+            row.put("interest_rate", c.getInterestRate());
+            row.put("months_left", c.getMonthsLeft());
+            rows.add(row);
+        }
+
+        Map<String, Object> credits_payload = new LinkedHashMap<>();
+        credits_payload.put("items", rows);
+        credits_payload.put("total_balance", totalBalance);
+        credits_payload.put("total_monthly_payment", totalMonthly);
+        if (salary != null && salary.compareTo(BigDecimal.ZERO) > 0) {
+            double dti = totalMonthly.doubleValue() / salary.doubleValue() * 100.0;
+            credits_payload.put("debt_to_income_pct", Math.round(dti * 10.0) / 10.0);
+        }
+        return credits_payload;
+    }
+
+    private Map<String, Object> buildActualSpendingPayload(UserEntity user) {
+        AnalyzeAiProfile last = loadAiProfile(user);
+        if (last == null) return null;
+
+        Map<String, Object> actual = new LinkedHashMap<>();
+        if (last.getPeriod() != null) {
+            Map<String, Object> period = new LinkedHashMap<>();
+            period.put("start_date", last.getPeriod().getStartDate());
+            period.put("end_date", last.getPeriod().getEndDate());
+            actual.put("period", period);
+        }
+        if (last.getTotals() != null) {
+            Map<String, Object> totals = new LinkedHashMap<>();
+            totals.put("total_income", last.getTotals().getTotalIncome());
+            totals.put("total_expense", last.getTotals().getTotalExpense());
+            totals.put("currency", last.getTotals().getCurrency());
+            actual.put("totals", totals);
+        }
+        if (last.getCategories() != null && !last.getCategories().isEmpty()) {
+            List<Map<String, Object>> cats = new ArrayList<>();
+            for (AnalyzeAiProfile.Category c : last.getCategories()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("name", c.getCategoryName());
+                row.put("amount", c.getAmount());
+                row.put("percentage", c.getPercentage());
+                cats.add(row);
+            }
+            actual.put("categories", cats);
+        }
+        if (last.getDetectedSubscriptions() != null && !last.getDetectedSubscriptions().isEmpty()) {
+            List<Map<String, Object>> subs = new ArrayList<>();
+            for (AnalyzeAiProfile.Subscription s : last.getDetectedSubscriptions()) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("service", s.getServiceName());
+                row.put("amount", s.getEstimatedMonthlyAmount());
+                subs.add(row);
+            }
+            actual.put("subscriptions", subs);
+        }
+        if (last.getFinancialProfile() != null) {
+            Map<String, Object> fp = new LinkedHashMap<>();
+            fp.put("personality_type", last.getFinancialProfile().getPersonalityType());
+            fp.put("reasoning", last.getFinancialProfile().getReasoning());
+            actual.put("personality", fp);
+        }
+        return actual.isEmpty() ? null : actual;
+    }
+
+    private Map<String, Object> buildSurveyPayload(UserEntity user) {
+        Map<String, Object> profile = new LinkedHashMap<>();
+        profile.put("age", user.getAge());
+        profile.put("gender", user.getGender() != null ? user.getGender().name() : null);
+        if (!user.isSurveyCompleted()) {
+            profile.put("survey_completed", false);
+            return profile;
+        }
+        profile.put("survey_completed", true);
+        profile.put("marital_status", user.getMaritalStatus() != null ? user.getMaritalStatus().getLabel() : null);
+        profile.put("children_count", user.getChildrenCount());
+        profile.put("employment_type", user.getEmploymentType() != null ? user.getEmploymentType().getLabel() : null);
+        profile.put("housing_status", user.getHousingStatus() != null ? user.getHousingStatus().getLabel() : null);
+        profile.put("has_debts", user.getHasDebts());
+        profile.put("financial_goal", user.getFinancialGoal() != null ? user.getFinancialGoal().getLabel() : null);
+        profile.put("city_size", user.getCitySize() != null ? user.getCitySize().getLabel() : null);
+        profile.put("spending_style", user.getSpendingStyle() != null ? user.getSpendingStyle().getLabel() : null);
+        return profile;
     }
 
     @Transactional(readOnly = true)
@@ -223,31 +416,20 @@ public class AnalyticsService {
     private AiRefreshBlock buildAiRefresh(UserEntity user) {
         AiRefreshBlock block = new AiRefreshBlock();
         ProfileAnalyzedAIEntity entity = profileAnalyzedAIRepository.findByUser(user).orElse(null);
-        YearMonth currentMonth = YearMonth.now(ZONE);
-        LocalDate nextDate = currentMonth.plusMonths(1).atDay(1);
-        DateTimeFormatter humanRu = HUMAN_DATE.withLocale(new java.util.Locale("ru"));
 
-        if (entity == null || entity.getUpdatedAt() == null
-                || entity.getRecommendedFreePocketPct() == null) {
-            block.setCanRefresh(true);
-            block.setLastRunAt(null);
-            block.setNextAvailableAt(null);
-            block.setReason(null);
-            return block;
+        if (entity != null && entity.getUpdatedAt() != null) {
+            block.setLastRunAt(entity.getUpdatedAt().toString());
         }
 
-        Instant updatedAt = entity.getUpdatedAt();
-        block.setLastRunAt(updatedAt.toString());
-
-        YearMonth lastRun = YearMonth.from(updatedAt.atZone(ZONE).toLocalDate());
-        if (lastRun.isBefore(currentMonth)) {
+        BudgetLockService.LockState state = budgetLockService.getLockState(user);
+        if (state.isLocked()) {
+            block.setCanRefresh(false);
+            block.setNextAvailableAt(state.getUnlockAt().toString());
+            block.setReason("Бюджет заморожен до " + state.unlockAtHuman());
+        } else {
             block.setCanRefresh(true);
             block.setNextAvailableAt(null);
             block.setReason(null);
-        } else {
-            block.setCanRefresh(false);
-            block.setNextAvailableAt(nextDate.toString());
-            block.setReason("Уже обновляли в этом месяце. Следующий — " + nextDate.format(humanRu));
         }
 
         return block;
@@ -260,6 +442,7 @@ public class AnalyticsService {
         block.setLastName(user.getLastName());
         block.setEmail(user.getEmail());
         block.setInit(user.isInit());
+        block.setSurveyCompleted(user.isSurveyCompleted());
         return block;
     }
 
@@ -288,12 +471,23 @@ public class AnalyticsService {
     }
 
     private AnalyzeAiProfile loadAiProfile(UserEntity user) {
+        String cacheKey = RedisService.aiProfileKey(user.getUsername());
+        String cached = redisService.get(cacheKey);
+        if (cached != null && !cached.isBlank()) {
+            try {
+                return jsonHelper.fromJson(cached, AnalyzeAiProfile.class);
+            } catch (Exception ignored) {
+            }
+        }
+
         ProfileAnalyzedAIEntity entity = profileAnalyzedAIRepository.findByUser(user).orElse(null);
         if (entity == null || entity.getRawJson() == null || entity.getRawJson().isBlank()) {
             return null;
         }
         try {
-            return jsonHelper.fromJson(entity.getRawJson(), AnalyzeAiProfile.class);
+            AnalyzeAiProfile profile = jsonHelper.fromJson(entity.getRawJson(), AnalyzeAiProfile.class);
+            redisService.save(cacheKey, entity.getRawJson(), Duration.ofDays(30));
+            return profile;
         } catch (Exception e) {
             return null;
         }
@@ -345,6 +539,21 @@ public class AnalyticsService {
             BigDecimal targetFree = canSave
                     .multiply(BigDecimal.valueOf(pct / 100.0))
                     .setScale(0, java.math.RoundingMode.HALF_UP);
+
+            if (salary.compareTo(BigDecimal.ZERO) > 0) {
+                double leftoverRatio = canSave.doubleValue() / salary.doubleValue();
+                double floorPct = 0.03;
+                if (leftoverRatio > 0.50) floorPct = 0.08;
+                else if (leftoverRatio > 0.30) floorPct = 0.05;
+
+                BigDecimal floor = salary.multiply(BigDecimal.valueOf(floorPct))
+                        .setScale(0, java.math.RoundingMode.HALF_UP);
+
+                if (targetFree.compareTo(floor) < 0) {
+                    targetFree = floor;
+                }
+            }
+
             if (targetFree.compareTo(canSave) > 0) targetFree = canSave;
             if (targetFree.compareTo(BigDecimal.ZERO) < 0) targetFree = BigDecimal.ZERO;
             freePocket = targetFree;

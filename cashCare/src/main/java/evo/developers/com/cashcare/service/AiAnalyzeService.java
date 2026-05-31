@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,11 +28,15 @@ public class AiAnalyzeService {
             Pattern.CASE_INSENSITIVE
     );
 
+    private static final Duration AI_PROFILE_TTL = Duration.ofDays(30);
+    private static final Duration AI_COOLDOWN_TTL = Duration.ofDays(30);
+
     private final OpenRouterClient openRouterClient;
     private final JsonHelper jsonHelper;
     private final FinancesService financesService;
     private final UserRepository userRepository;
     private final ProfileAnalyzedAIRepository profileAnalyzedAIRepository;
+    private final RedisService redisService;
 
     @Transactional
     public AnalyzeAiProfile analyzeTransaction(String username, String payload) throws NotFoundException {
@@ -96,6 +101,9 @@ public class AiAnalyzeService {
         }
 
         profileAnalyzedAIRepository.save(entity);
+
+        redisService.save(RedisService.aiProfileKey(username), rawJson, AI_PROFILE_TTL);
+        redisService.save(RedisService.aiCooldownKey(username), "1", AI_COOLDOWN_TTL);
     }
 
     private String sanitizeJsonResponse(String raw) {

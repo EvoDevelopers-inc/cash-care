@@ -1,10 +1,16 @@
 /* Dashboard glass theme — light, поверх /images/bg.png */
+html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
 body {
     background-image: url('/images/bg.png') !important;
     background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
     background-attachment: fixed !important;
+    overflow-wrap: anywhere;
+    word-wrap: break-word;
 }
 
 .glass {
@@ -16,6 +22,95 @@ body {
         0 18px 50px -22px rgba(15, 23, 42, 0.35),
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
+
+/* ───── PDF onboarding card (dashboard) ───── */
+.pdf-onboard-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.18), rgba(168, 85, 247, 0.18));
+    color: #4f46e5;
+    flex-shrink: 0;
+}
+
+.pdf-onboard-drop {
+    display: block;
+    cursor: pointer;
+    border: 2px dashed rgba(99, 102, 241, 0.35);
+    border-radius: 16px;
+    background: rgba(238, 242, 255, 0.55);
+    padding: 16px;
+    transition: 0.18s ease;
+}
+.pdf-onboard-drop:hover,
+.pdf-onboard-drop.is-drag {
+    border-color: #6366f1;
+    background: rgba(224, 231, 255, 0.85);
+    transform: translateY(-1px);
+}
+.pdf-onboard-drop.is-loading {
+    pointer-events: none;
+    opacity: 0.55;
+}
+.pdf-onboard-drop-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #312e81;
+}
+.pdf-onboard-drop-inner i { color: #4f46e5; flex-shrink: 0; }
+
+.pdf-onboard-spin {
+    animation: pdf-onboard-rotate 0.9s linear infinite;
+}
+
+@keyframes pdf-onboard-rotate {
+    to { transform: rotate(360deg); }
+}
+
+/* ───── Credits step (init модалка) ───── */
+.credit-row {
+    border-radius: 14px;
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    background: rgba(238, 242, 255, 0.45);
+    padding: 12px;
+}
+.credit-name-input.init-input { font-weight: 700; }
+.credit-remove-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    border: 0;
+    flex-shrink: 0;
+    transition: 0.15s ease;
+}
+.credit-remove-btn:hover { background: rgba(244, 63, 94, 0.1); color: #be123c; }
+
+/* ───── AI badge у "Свободно" в распределении ───── */
+.ai-pocket-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 7px 1px 5px;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(168, 85, 247, 0.16));
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+}
+.ai-pocket-badge .lc { width: 10px; height: 10px; }
 
 .glass-soft {
     background: rgba(255, 255, 255, 0.55);
@@ -287,6 +382,252 @@ body {
 
 body.modal-open { overflow: hidden; }
 
+/* ───── Lucide icons sizing ───── */
+.lc {
+    display: inline-block;
+    flex-shrink: 0;
+    stroke-width: 2;
+    color: currentColor;
+}
+.lc-xs { width: 14px; height: 14px; }
+.lc-sm { width: 16px; height: 16px; }
+.lc-md { width: 20px; height: 20px; }
+.lc-lg { width: 26px; height: 26px; }
+.lc-xl { width: 36px; height: 36px; }
+
+/* svg sizing tweaks (lucide replaces <i> with <svg>) */
+svg.lc-xs { width: 14px; height: 14px; }
+svg.lc-sm { width: 16px; height: 16px; }
+svg.lc-md { width: 20px; height: 20px; }
+svg.lc-lg { width: 26px; height: 26px; }
+svg.lc-xl { width: 36px; height: 36px; }
+
+/* ───── AI Status Banner ───── */
+.ai-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 20px;
+    border: 1.5px solid;
+    backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+}
+.ai-status.hidden { display: none; }
+
+.ai-status-month {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+.ai-status-emoji {
+    font-size: 28px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.ai-status-title {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+.ai-status-meta {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 500;
+}
+.ai-status-cta {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: right;
+    max-width: 360px;
+}
+
+/* state: locked (AI уже сделан, бюджет на замке) — спокойный фиолет */
+.ai-status.state-locked {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.10), rgba(168, 85, 247, 0.08));
+    border-color: rgba(99, 102, 241, 0.28);
+}
+.ai-status.state-locked .ai-status-title { color: rgb(49, 46, 129); }
+.ai-status.state-locked .ai-status-meta  { color: rgb(79, 70, 229); }
+.ai-status.state-locked .ai-status-cta   { color: rgb(67, 56, 202); }
+.ai-status.state-locked .ai-status-emoji { color: rgb(79, 70, 229); }
+
+/* state: ready (AI ещё не запускался) — призывный изумруд */
+.ai-status.state-ready {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(20, 184, 166, 0.08));
+    border-color: rgba(16, 185, 129, 0.32);
+}
+.ai-status.state-ready .ai-status-title { color: rgb(6, 78, 59); }
+.ai-status.state-ready .ai-status-meta  { color: rgb(4, 120, 87); }
+.ai-status.state-ready .ai-status-cta   { color: rgb(5, 150, 105); }
+.ai-status.state-ready .ai-status-emoji { color: rgb(5, 150, 105); }
+
+/* state: refresh (AI был, кулдаун прошёл — пора обновить) — янтарь */
+.ai-status.state-refresh {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(249, 115, 22, 0.10));
+    border-color: rgba(251, 146, 60, 0.36);
+}
+.ai-status.state-refresh .ai-status-title { color: rgb(120, 53, 15); }
+.ai-status.state-refresh .ai-status-meta  { color: rgb(154, 52, 18); }
+.ai-status.state-refresh .ai-status-cta   { color: rgb(180, 83, 9); }
+.ai-status.state-refresh .ai-status-emoji { color: rgb(180, 83, 9); }
+
+@media (max-width: 640px) {
+    .ai-status { padding: 12px 14px; }
+    .ai-status-cta { text-align: left; max-width: none; flex: 1 0 100%; }
+    .ai-status-emoji { font-size: 24px; }
+}
+
+/* ───── Budget locked state ───── */
+.budget-locked .budget-input,
+.budget-locked .budget-name-input {
+    opacity: 0.6;
+    pointer-events: none;
+    cursor: not-allowed;
+    background: rgba(148, 163, 184, 0.08);
+}
+.budget-locked .budget-delete {
+    display: none !important;
+}
+.budget-locked #add-category-btn,
+.budget-locked #budget-salary-input {
+    opacity: 0.55;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+.budget-locked #new-category-form {
+    display: none !important;
+}
+
+/* ───── Survey close button (виден только в edit-режиме) ───── */
+.survey-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 10;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: rgb(100, 116, 139);
+    background: rgba(241, 245, 249, 0.85);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+.survey-close:hover {
+    background: rgba(226, 232, 240, 1);
+    color: rgb(15, 23, 42);
+    transform: scale(1.05);
+}
+.survey-close.hidden { display: none; }
+
+/* ───── Survey modal ───── */
+.survey-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid rgba(148, 163, 184, 0.25);
+    border-radius: 14px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+.survey-option:hover {
+    border-color: rgb(99, 102, 241);
+    background: rgba(99, 102, 241, 0.04);
+    transform: translateY(-1px);
+}
+.survey-option.selected {
+    border-color: rgb(79, 70, 229);
+    background: rgba(99, 102, 241, 0.08);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+.survey-option .survey-radio {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(148, 163, 184, 0.4);
+    border-radius: 999px;
+    background: white;
+    position: relative;
+    transition: all 0.15s ease;
+}
+.survey-option.selected .survey-radio {
+    border-color: rgb(79, 70, 229);
+}
+.survey-option.selected .survey-radio::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 999px;
+    background: rgb(79, 70, 229);
+}
+.survey-option .survey-emoji {
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgb(79, 70, 229);
+}
+.survey-option:not(.selected) .survey-emoji { color: rgb(100, 116, 139); }
+.survey-option .survey-label {
+    flex: 1;
+    min-width: 0;
+}
+.survey-option .survey-label-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgb(15, 23, 42);
+    line-height: 1.3;
+}
+.survey-option .survey-label-hint {
+    margin-top: 2px;
+    font-size: 11px;
+    color: rgb(100, 116, 139);
+    line-height: 1.3;
+}
+
+.survey-children-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+.survey-children-grid .survey-option {
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 6px;
+    gap: 4px;
+}
+.survey-children-grid .survey-option .survey-radio {
+    display: none;
+}
+.survey-children-grid .survey-option .survey-emoji {
+    font-size: 26px;
+    color: rgb(79, 70, 229);
+}
+.survey-children-grid .survey-option .survey-label-title {
+    font-size: 13px;
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .survey-children-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
 #reupload-pdf-btn.is-locked {
     background: rgba(148, 163, 184, 0.18) !important;
     color: #64748b !important;
@@ -376,6 +717,48 @@ body.modal-open { overflow: hidden; }
     }
 }
 
+/* На любом не-десктопном размере (до 1024px, где появляется sidebar) принудительно
+   используем 2-строчный layout бюджет-row — чтобы бейдж "обяз." не выпрыгивал за карточку. */
+@media (max-width: 1023.98px) {
+    .budget-row {
+        grid-template-columns: minmax(0, 1fr) auto !important;
+        grid-template-areas:
+            "name name"
+            "amount del" !important;
+        gap: 6px 8px !important;
+        padding: 10px 12px !important;
+    }
+    .budget-row > :first-child {
+        grid-area: name;
+        min-width: 0;
+        gap: 8px;
+        overflow: hidden; /* safety net: бейдж точно не вылезет за ячейку */
+    }
+    .budget-row .budget-input-wrap { grid-area: amount; min-width: 0; }
+    .budget-row .budget-delete { grid-area: del; }
+
+    .budget-row.budget-income {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-areas:
+            "name"
+            "amount" !important;
+        gap: 6px !important;
+    }
+    .budget-row.budget-income > :first-child { min-width: 0; overflow: visible; }
+    .budget-row.budget-income .budget-input-wrap { min-width: 0; }
+
+    .budget-name-input {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+        width: auto !important;
+    }
+    .budget-required {
+        flex-shrink: 0;
+        margin-left: 0;
+    }
+    .budget-input { width: 100%; min-width: 0; }
+}
+
 @media (max-width: 768px) {
     body { font-size: 14px; }
 
@@ -397,18 +780,68 @@ body.modal-open { overflow: hidden; }
     /* health card don't clamp height */
     section.glass.max-h-64 { max-height: none !important; }
 
-    /* budget editor compact */
+    /* anti-iOS-zoom: на iOS Safari фокус на input < 16px зумит viewport,
+       и страница после этого "не помещается". Принудительно ставим 16px. */
+    input, textarea, select {
+        font-size: 16px !important;
+    }
+
+    /* main column и все glass-карточки не должны раздуваться шире parent */
+    main { min-width: 0; }
+    main > section.glass,
+    main section.glass,
+    main .glass { min-width: 0; max-width: 100%; }
+
+    /* шапка дашборда — кнопки в одну строку под заголовком, без переноса контента */
+    .dash-header { gap: 10px; }
+    .dash-header h1 { font-size: 1.4rem !important; word-break: break-word; }
+    .dash-header .dash-header-actions { width: 100%; }
+    .dash-header #reupload-pdf-btn { width: 100%; text-align: center; justify-content: center; }
+
+    /* "Бюджет месяца" — заголовок + "+ Добавить" не должны выпихивать кнопку за край */
+    #add-category-btn { padding: 6px 10px; font-size: 0.72rem; white-space: nowrap; }
+
+    /* budget editor — переносим на 2 ряда, чтобы имя категории не схлопывалось */
     .budget-row {
-        grid-template-columns: minmax(0, 1fr) 130px 30px;
-        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "name name"
+            "amount del";
+        gap: 6px 8px;
+        padding: 10px 12px;
+    }
+    .budget-row > :first-child {
+        grid-area: name;
+        min-width: 0;
+        gap: 8px; /* отступ между названием и бейджем "обяз." */
+    }
+    .budget-row .budget-input-wrap { grid-area: amount; min-width: 0; }
+    .budget-row .budget-delete { grid-area: del; }
+
+    /* доход — одной строкой остаётся, но без удаления */
+    .budget-row.budget-income {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "name"
+            "amount";
+        gap: 6px;
+    }
+    .budget-row.budget-income > :first-child { min-width: 0; }
+    .budget-row.budget-income .budget-input-wrap { min-width: 0; }
+
+    /* ВАЖНО: width НЕ 100% — иначе во flex-обёртке инпут выдавит бейдж "обяз." за карточку.
+       Только flex:1 + min-width:0, чтобы инпут делил место с бейджем корректно. */
+    .budget-name-input {
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto;
+        font-weight: 700;
         padding: 8px 10px;
     }
-    .budget-row.budget-income {
-        grid-template-columns: 1fr 140px;
-    }
-    .budget-input { padding: 7px 24px 7px 8px; font-size: 0.86rem; }
-    .budget-suffix { right: 8px; font-size: 0.74rem; }
-    .budget-name-input { font-size: 0.84rem; padding: 5px 6px; }
+    .budget-required { flex-shrink: 0; margin-left: 0; }
+    /* number-инпут занимает всю свою grid-ячейку */
+    .budget-input { width: 100%; min-width: 0; padding: 10px 30px 10px 12px; }
+    .budget-suffix { right: 10px; font-size: 0.85rem; }
 
     /* init modal compact */
     #init-modal-card { max-width: 100% !important; }
@@ -433,16 +866,13 @@ body.modal-open { overflow: hidden; }
 
     .pill { padding: 4px 9px; font-size: 0.72rem; }
 
-    /* budget rows even tighter */
+    /* совсем узкие экраны — оставляем 2-рядный layout, просто чуть компактнее */
     .budget-row {
-        grid-template-columns: minmax(0, 1fr) 96px 26px;
-        gap: 6px;
-        padding: 7px 8px;
-    }
-    .budget-row.budget-income {
-        grid-template-columns: 1fr 104px;
+        gap: 6px 6px;
+        padding: 9px 10px;
     }
     .budget-label { font-size: 0.82rem; }
+    /* ВАЖНО: input font-size остаётся 16px из @media 640px, иначе iOS зумит */
 
     /* mood / dist titles */
     .dist-row { padding: 8px 10px; }
@@ -462,7 +892,7 @@ body.modal-open { overflow: hidden; }
 /* ───── Бюджет месяца — inline editor ───── */
 .budget-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 200px 28px;
+    grid-template-columns: minmax(120px, 1fr) 200px 28px;
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
@@ -498,7 +928,9 @@ body.modal-open { overflow: hidden; }
     font-weight: 600;
     color: #0f172a;
     outline: none;
-    width: 100%;
+    flex: 1 1 0;
+    min-width: 0;
+    width: auto;
     transition: 0.15s ease;
 }
 
@@ -689,4 +1121,512 @@ body.modal-open { overflow: hidden; }
     border: solid #fff;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg) translate(-1px, -1px);
+}
+
+/* ─────────────────────────────────────────────────────────
+   Трекер мечты: goal cards, fog effect, categories, celebration
+   ───────────────────────────────────────────────────────── */
+
+.goal-teaser {
+    position: relative;
+}
+
+.goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+}
+
+@media (max-width: 640px) {
+    .goals-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.goal-card {
+    position: relative;
+    border-radius: 24px;
+    padding: 0;
+    overflow: hidden;
+    color: #fff;
+    box-shadow: 0 12px 30px -12px rgba(15, 23, 42, 0.3);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    isolation: isolate;
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+}
+
+.goal-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.45);
+}
+
+.goal-card-fog {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.goal-card-fog::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.15), transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(0, 0, 0, 0.18), transparent 60%);
+    pointer-events: none;
+}
+
+.goal-card-fog-emoji {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 9rem;
+    line-height: 1;
+    transition: filter 0.6s ease, opacity 0.6s ease, transform 0.6s ease;
+    user-select: none;
+    pointer-events: none;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.goal-card-body {
+    position: relative;
+    z-index: 2;
+    padding: 18px 18px 16px 18px;
+    margin-top: auto;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.32) 50%, rgba(0, 0, 0, 0.55) 100%);
+    backdrop-filter: blur(2px);
+}
+
+.goal-card-cat {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
+    margin-bottom: 4px;
+}
+
+.goal-card-title {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    overflow-wrap: anywhere;
+}
+
+.goal-card-amounts {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.goal-card-amount-saved {
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.goal-card-amount-target {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+.goal-card-progress {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.goal-card-progress-fill {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 999px;
+    transition: width 0.6s ease;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.6);
+}
+
+.goal-card-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    opacity: 0.92;
+    margin-bottom: 4px;
+}
+
+.goal-card-pct {
+    font-weight: 800;
+}
+
+.goal-card-mood {
+    font-style: italic;
+    text-align: right;
+    opacity: 0.85;
+}
+
+.goal-card-remaining {
+    font-size: 11px;
+    margin-top: 2px;
+    margin-bottom: 8px;
+    opacity: 0.85;
+}
+
+.goal-card-cta {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: 0.18s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.goal-card-cta:hover {
+    background: #fff;
+    transform: translateY(-1px);
+}
+
+.goal-card-cta:active {
+    transform: translateY(0);
+}
+
+.goal-card-cta-done {
+    background: rgba(16, 185, 129, 0.95);
+    color: #fff;
+    cursor: default;
+}
+
+.goal-card-cta-done:hover { transform: none; }
+
+.goal-card-cta-locked {
+    background: rgba(255, 255, 255, 0.7);
+    color: #475569;
+    cursor: not-allowed;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.goal-card-cta-locked:hover { transform: none; background: rgba(255, 255, 255, 0.7); }
+
+.goal-card-edit {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+
+.goal-card-edit:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* category picker grid */
+.goal-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+@media (max-width: 480px) {
+    .goal-cat-grid {
+        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        max-height: 220px;
+    }
+}
+
+.goal-cat-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 8px;
+    border-radius: 14px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #0f172a;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s ease;
+    text-align: center;
+    min-height: 76px;
+}
+
+.goal-cat-pill:hover {
+    border-color: #c084fc;
+    background: #faf5ff;
+}
+
+.goal-cat-pill.active {
+    border-color: #a855f7;
+    background: linear-gradient(180deg, #faf5ff 0%, #f3e8ff 100%);
+    color: #6b21a8;
+    box-shadow: 0 4px 12px -2px rgba(168, 85, 247, 0.3);
+}
+
+.goal-cat-pill-emoji {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.goal-cat-pill-label {
+    line-height: 1.15;
+    word-break: break-word;
+}
+
+/* quick-amount pills in contribute modal */
+.goal-quick-pill {
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #d8b4fe;
+    background: #faf5ff;
+    color: #6b21a8;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.goal-quick-pill:hover {
+    background: #f3e8ff;
+    border-color: #a855f7;
+}
+
+.goal-quick-pill-smart {
+    border-color: #f0abfc;
+    background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+    color: #86198f;
+    box-shadow: 0 2px 8px -2px rgba(217, 70, 239, 0.3);
+}
+
+.goal-quick-pill-smart:hover {
+    background: linear-gradient(135deg, #fae8ff 0%, #f5d0fe 100%);
+    border-color: #d946ef;
+}
+
+.goal-pill-spark {
+    font-size: 12px;
+    line-height: 1;
+}
+
+.goal-quick-pill-close {
+    border-color: #6ee7b7;
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.goal-quick-pill-close:hover {
+    background: #d1fae5;
+    border-color: #10b981;
+}
+
+/* card forecast block */
+.goal-card-forecast {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.goal-forecast-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 11px;
+    line-height: 1.35;
+    opacity: 0.95;
+}
+
+.goal-forecast-line i,
+.goal-forecast-line svg {
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.goal-forecast-hint {
+    color: #fff;
+    font-style: italic;
+    opacity: 0.85;
+}
+
+.goal-forecast-warn {
+    color: #fff7ed;
+    font-weight: 700;
+}
+
+.goal-forecast-ok {
+    color: #ecfdf5;
+    font-weight: 700;
+}
+
+/* teaser smart hint above card */
+.goal-teaser-hint {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #fdf4ff 0%, #ede9fe 100%);
+    border: 1px solid #f0abfc;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.goal-teaser-hint-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #6b21a8;
+    line-height: 1.35;
+    flex: 1 1 200px;
+    min-width: 0;
+}
+
+.goal-teaser-hint-text strong {
+    color: #86198f;
+    font-weight: 800;
+}
+
+.goal-teaser-hint-locked {
+    color: #475569;
+}
+
+.goal-teaser-hint-locked strong {
+    color: #1e293b;
+}
+
+.goal-teaser-hint-btn {
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #d946ef 0%, #a855f7 100%);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    border: none;
+    cursor: pointer;
+    transition: 0.15s ease;
+    box-shadow: 0 4px 12px -2px rgba(168, 85, 247, 0.4);
+    flex-shrink: 0;
+}
+
+.goal-teaser-hint-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -2px rgba(168, 85, 247, 0.5);
+}
+
+.goal-teaser-hint-btn:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 480px) {
+    .goal-teaser-hint {
+        padding: 10px 12px;
+    }
+    .goal-teaser-hint-btn {
+        width: 100%;
+    }
+}
+
+/* celebration overlay when goal completed */
+.goal-celebrate-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(15, 23, 42, 0.55);
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    padding: 16px;
+}
+
+.goal-celebrate-overlay.show {
+    opacity: 1;
+}
+
+.goal-celebrate-card {
+    background: linear-gradient(135deg, #f0abfc 0%, #c084fc 100%);
+    color: #fff;
+    border-radius: 28px;
+    padding: 32px 40px;
+    text-align: center;
+    box-shadow: 0 30px 60px -15px rgba(168, 85, 247, 0.6);
+    transform: scale(0.7);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.goal-celebrate-overlay.show .goal-celebrate-card {
+    transform: scale(1);
+}
+
+.goal-celebrate-emoji {
+    font-size: 5rem;
+    line-height: 1;
+    margin-bottom: 8px;
+    animation: goalCelebrateBounce 1.2s ease-in-out infinite;
+}
+
+@keyframes goalCelebrateBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+}
+
+.goal-celebrate-title {
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 4px;
+    letter-spacing: 0.01em;
+}
+
+.goal-celebrate-sub {
+    font-size: 14px;
+    opacity: 0.95;
+}
+
+/* sidebar count badge tweak */
+#sidebar-goals-count {
+    margin-left: 2px;
 }

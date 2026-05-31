@@ -18,6 +18,10 @@ const dashState = {
 document.addEventListener("DOMContentLoaded", async () => {
     redirectIfGuest();
 
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+    }
+
     if (logoutBtn) {
         logoutBtn.addEventListener("click", handleLogout);
     }
@@ -26,6 +30,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     bindFakeButtons();
     bindBudgetEditor();
     bindReupload();
+    bindEditSurvey();
+    bindManageCredits();
+    bindPdfOnboard();
+    bindAiDetailModal();
+
+    if (typeof preloadGoalsForDashboard === "function") {
+        preloadGoalsForDashboard();
+    }
 
     let overview;
     try {
@@ -43,6 +55,23 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     fillProfileSidebar(overview.profile);
     applyOverview(overview);
+
+    window.onSurveyCompleted = async () => {
+        try {
+            const fresh = await CashCareApi.getAnalyticsOverview();
+            applyOverview(fresh);
+            if (!fresh.profile.init) {
+                await openInitModal();
+            }
+        } catch (err) {
+            showProfileAlert(err?.message || "Не удалось обновить данные");
+        }
+    };
+
+    if (!overview.profile.surveyCompleted) {
+        await openSurveyModal();
+        return;
+    }
 
     if (!overview.profile.init) {
         await openInitModal();
@@ -81,6 +110,15 @@ function applyOverview(overview) {
     dashState.others = overview.currentMonth?.others ?? null;
     dashState.plannedCategories = overview.plannedCategories || [];
     dashState.salaryDirty = false;
+    dashState.aiAnalysis = overview.aiAnalysis || null;
+    dashState.freePocket = Math.max(Number(overview.balance?.freePocket || 0), 0);
+    dashState.canSave = Math.max(Number(overview.balance?.canSave || 0), 0);
+
+    if (typeof goalsState !== "undefined" && goalsState) {
+        goalsState.freePocket = dashState.freePocket;
+        goalsState.canSave = dashState.canSave;
+        if (typeof renderGoalsTeaser === "function") renderGoalsTeaser();
+    }
 
     renderOverview(overview);
 }
@@ -129,41 +167,335 @@ function bindFakeButtons() {
 function renderOverview(overview) {
     const ai = overview.aiAnalysis ? normalizeAiAnalysis(overview.aiAnalysis) : null;
 
+    renderMonthLabels();
+    renderAiStatusBanner(overview.aiRefresh, ai);
+    renderPdfOnboard(ai);
     renderBalance(overview.balance, ai);
     renderMoodCard(overview.balance);
-    renderDistribution(overview.balance);
+    renderDistribution(overview.balance, ai);
     renderTopCategories(ai, overview.plannedCategories);
     renderAllCategories(ai, overview.plannedCategories);
     renderHealth(ai, overview.rating);
     renderTips(ai);
     renderBudgetEditor();
     renderAiRefresh(overview.aiRefresh);
+    applyBudgetLock(overview.aiRefresh);
+}
+
+function renderPdfOnboard(ai) {
+    const card = document.getElementById("pdf-onboard-card");
+    if (!card) return;
+
+    if (ai) {
+        card.classList.add("hidden");
+        return;
+    }
+    card.classList.remove("hidden");
+    refreshLucide();
+}
+
+function bindPdfOnboard() {
+    const card = document.getElementById("pdf-onboard-card");
+    if (!card) return;
+    const drop = document.getElementById("pdf-onboard-drop");
+    const input = document.getElementById("pdf-onboard-input");
+    if (!drop || !input) return;
+
+    input.addEventListener("change", (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) handlePdfOnboardUpload(file);
+        input.value = "";
+    });
+
+    ["dragenter", "dragover"].forEach((evt) => {
+        drop.addEventListener(evt, (e) => {
+            e.preventDefault();
+            drop.classList.add("is-drag");
+        });
+    });
+    ["dragleave", "drop"].forEach((evt) => {
+        drop.addEventListener(evt, (e) => {
+            e.preventDefault();
+            drop.classList.remove("is-drag");
+        });
+    });
+    drop.addEventListener("drop", (e) => {
+        const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (file) handlePdfOnboardUpload(file);
+    });
+}
+
+async function handlePdfOnboardUpload(file) {
+    const drop = document.getElementById("pdf-onboard-drop");
+    const progress = document.getElementById("pdf-onboard-progress");
+    const progressText = document.getElementById("pdf-onboard-progress-text");
+    const errorEl = document.getElementById("pdf-onboard-error");
+    const label = document.getElementById("pdf-onboard-label");
+
+    const isPdf = (file.type === "application/pdf") ||
+                  (file.name && file.name.toLowerCase().endsWith(".pdf"));
+    if (!isPdf) {
+        showOnboardError("Нужен PDF-файл");
+        return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+        showOnboardError("Файл больше 10 МБ — слишком большой");
+        return;
+    }
+
+    if (errorEl) errorEl.classList.add("hidden");
+    drop?.classList.add("is-loading");
+    progress?.classList.remove("hidden");
+    if (label) label.textContent = file.name;
+
+    let stage = 0;
+    const stages = [
+        "Парсим транзакции из выписки...",
+        "Категоризируем расходы...",
+        "AI определяет финансовый тип...",
+        "Почти готово, формируем профиль..."
+    ];
+    if (progressText) progressText.textContent = stages[0];
+    const ticker = setInterval(() => {
+        stage = Math.min(stage + 1, stages.length - 1);
+        if (progressText) progressText.textContent = stages[stage];
+    }, 5000);
+
+    try {
+        await CashCareApi.uploadStatement(file);
+        await reloadOverview();
+    } catch (err) {
+        showOnboardError(err?.message || "Не удалось загрузить выписку");
+    } finally {
+        clearInterval(ticker);
+        drop?.classList.remove("is-loading");
+        progress?.classList.add("hidden");
+        if (label) label.textContent = "Выбрать PDF или перетащи сюда";
+    }
+}
+
+function showOnboardError(message) {
+    const errorEl = document.getElementById("pdf-onboard-error");
+    if (!errorEl) return;
+    errorEl.textContent = message;
+    errorEl.classList.remove("hidden");
+}
+
+const RU_MONTHS_NOM = ["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
+const RU_MONTHS_PREP = ["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"];
+
+function getCurrentMonthName(form) {
+    const idx = new Date().getMonth();
+    const name = form === "prep" ? RU_MONTHS_PREP[idx] : RU_MONTHS_NOM[idx];
+    return capitalize(name);
+}
+
+function capitalize(str) {
+    return str ? str[0].toUpperCase() + str.slice(1) : str;
+}
+
+function renderMonthLabels() {
+    const monthName = getCurrentMonthName("nom");
+    const year = new Date().getFullYear();
+    const balanceMonthEl = document.getElementById("balance-month-label");
+    if (balanceMonthEl) balanceMonthEl.textContent = `${monthName} ${year}`;
+
+    const subtitle = document.getElementById("dash-subtitle");
+    if (subtitle) {
+        subtitle.textContent = `Бюджет на ${monthName.toLowerCase()} · план месяца и AI-анализ`;
+    }
+}
+
+function renderAiStatusBanner(refresh, ai) {
+    const banner = document.getElementById("ai-status-banner");
+    if (!banner) return;
+
+    const titleEl = document.getElementById("ai-status-title");
+    const metaEl = document.getElementById("ai-status-meta");
+    const ctaEl = document.getElementById("ai-status-cta");
+    const iconEl = document.getElementById("ai-status-icon");
+
+    banner.classList.remove("hidden", "state-locked", "state-ready", "state-refresh");
+
+    const hasAi = !!ai;
+    const locked = refresh && refresh.canRefresh === false;
+    const monthPrep = getCurrentMonthName("prep");
+
+    if (locked) {
+        const nextHuman = formatLockHuman(refresh.nextAvailableAt) || "следующий месяц";
+        const lastHuman = formatLockHuman(refresh.lastRunAt);
+        banner.classList.add("state-locked");
+        setLucide(iconEl, "bot");
+        titleEl.textContent = `Ты в ${monthPrep} — план зафиксирован AI`;
+        metaEl.textContent = lastHuman
+            ? `AI-анализ от ${lastHuman}. Следующий — ${nextHuman}.`
+            : `Следующий AI-анализ — ${nextHuman}.`;
+        ctaEl.innerHTML = `<i data-lucide="lightbulb" class="lc lc-sm align-text-bottom mr-1"></i>Сейчас иди по советам нейронки ниже — они подобраны под твою анкету и план.`;
+        refreshLucide();
+        return;
+    }
+
+    if (hasAi) {
+        banner.classList.add("state-refresh");
+        setLucide(iconEl, "refresh-cw");
+        titleEl.textContent = `Месяц ${monthPrep.toLowerCase()} — пора пересобрать план`;
+        metaEl.textContent = "Прошлый AI-анализ устарел. Обнови план под новый месяц.";
+        ctaEl.innerHTML = `Жми «<i data-lucide="refresh-cw" class="lc lc-xs align-text-bottom mx-0.5"></i>Обновить AI» сверху, чтобы получить свежие рекомендации.`;
+        refreshLucide();
+        return;
+    }
+
+    banner.classList.add("state-ready");
+    setLucide(iconEl, "sparkles");
+    titleEl.textContent = `Запусти AI на ${monthPrep.toLowerCase()}`;
+    metaEl.innerHTML = `Нейронка ещё не анализировала твой план. Заполни доход и категории, потом нажми «<i data-lucide="refresh-cw" class="lc lc-xs align-text-bottom mx-0.5"></i>Обновить AI».`;
+    ctaEl.textContent = "После анализа план зафиксируется на месяц, а ты получишь персональные советы.";
+    refreshLucide();
+}
+
+function setLucide(target, iconName) {
+    if (!target) return;
+    if (target.tagName && target.tagName.toLowerCase() === "i") {
+        target.setAttribute("data-lucide", iconName);
+        return;
+    }
+    target.outerHTML = `<i id="${target.id}" data-lucide="${iconName}" class="${target.getAttribute("class") || "lc lc-lg"}"></i>`;
+}
+
+function refreshLucide() {
+    if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+    }
+}
+
+function applyBudgetLock(refresh) {
+    const locked = refresh ? refresh.canRefresh === false : false;
+    document.body.classList.toggle("budget-locked", locked);
+
+    const banner = document.getElementById("budget-lock-banner");
+    const text = document.getElementById("budget-lock-text");
+    if (!banner || !text) return;
+
+    if (!locked) {
+        banner.classList.add("hidden");
+        return;
+    }
+
+    banner.classList.remove("hidden");
+    const human = formatLockHuman(refresh.nextAvailableAt);
+    const monthPrep = getCurrentMonthName("prep");
+    text.textContent = human
+        ? `В ${monthPrep.toLowerCase()} категории и доход не правим — план зафиксирован до ${human}. Следуй советам AI ниже, они под твою ситуацию.`
+        : (refresh.reason || "Категории и доход нельзя менять — попробуй позже.");
+}
+
+function formatLockHuman(iso) {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleString("ru-RU", {
+        day: "numeric",
+        month: "long",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
+let aiCountdownTimer = null;
+
+function setReuploadButton(btn, iconName, labelText) {
+    btn.innerHTML = `<i data-lucide="${iconName}" class="lc lc-sm"></i><span id="reupload-pdf-btn-label">${labelText}</span>`;
+    refreshLucide();
 }
 
 function renderAiRefresh(refresh) {
     const btn = document.getElementById("reupload-pdf-btn");
     if (!btn) return;
 
+    if (aiCountdownTimer) {
+        clearInterval(aiCountdownTimer);
+        aiCountdownTimer = null;
+    }
+
     const canRefresh = refresh ? !!refresh.canRefresh : true;
-    btn.disabled = !canRefresh;
-    btn.classList.toggle("is-locked", !canRefresh);
 
     if (canRefresh) {
-        btn.textContent = "↻ Обновить AI";
+        btn.disabled = false;
+        btn.classList.remove("is-locked");
+        setReuploadButton(btn, "refresh-cw", "Обновить AI");
         btn.removeAttribute("title");
-    } else {
-        const reason = refresh?.reason || "Доступно один раз в месяц";
-        btn.textContent = "⏳ AI ждёт следующий месяц";
-        btn.title = reason;
+        return;
     }
+
+    const reason = refresh?.reason || "Доступно раз в месяц";
+    btn.title = reason;
+    btn.disabled = true;
+    btn.classList.add("is-locked");
+
+    const nextAt = refresh?.nextAvailableAt ? Date.parse(refresh.nextAvailableAt) : NaN;
+    if (!Number.isFinite(nextAt)) {
+        setReuploadButton(btn, "hourglass", "AI ждёт следующего запуска");
+        return;
+    }
+
+    const tick = () => {
+        const diff = nextAt - Date.now();
+        if (diff <= 0) {
+            clearInterval(aiCountdownTimer);
+            aiCountdownTimer = null;
+            btn.disabled = false;
+            btn.classList.remove("is-locked");
+            setReuploadButton(btn, "refresh-cw", "Обновить AI");
+            btn.removeAttribute("title");
+            return;
+        }
+        setReuploadButton(btn, "hourglass", `Через ${formatCountdown(diff)}`);
+    };
+
+    tick();
+    aiCountdownTimer = setInterval(tick, 1000);
 }
 
-function renderDistribution(balance) {
+function formatCountdown(ms) {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+
+    if (days > 0) return `${days}д ${hours}ч ${mins}м`;
+    if (hours > 0) return `${hours}ч ${mins}м ${pad2(secs)}с`;
+    if (mins > 0) return `${mins}м ${pad2(secs)}с`;
+    return `${secs}с`;
+}
+
+function pad2(n) {
+    return n < 10 ? `0${n}` : String(n);
+}
+
+function renderDistribution(balance, ai) {
     const required = Number(balance?.requiredExpense || 0);
     const optional = Number(balance?.optionalExpense || 0);
     const savings = Math.max(Number(balance?.savingsAmount || 0), 0);
     const free = Math.max(Number(balance?.freePocket || 0), 0);
     const total = required + optional + savings + free || 1;
+
+    const aiBadge = document.getElementById("dist-free-ai-badge");
+    const aiReason = document.getElementById("dist-free-reason");
+    const reasoning = ai && ai.financialProfile && ai.financialProfile.reasoning;
+    if (ai && reasoning) {
+        if (aiBadge) {
+            aiBadge.classList.remove("hidden");
+            refreshLucide();
+        }
+        if (aiReason) {
+            aiReason.textContent = reasoning;
+            aiReason.classList.remove("hidden");
+        }
+    } else {
+        if (aiBadge) aiBadge.classList.add("hidden");
+        if (aiReason) aiReason.classList.add("hidden");
+    }
 
     const pctReq = (required / total) * 100;
     const pctOpt = (optional / total) * 100;
@@ -394,8 +726,6 @@ function normalizeCategoryKey(name) {
 }
 
 function renderHealth(ai, rating) {
-    setText("health-subs", ai && ai.subscriptions.length ? `${ai.subscriptions.length} шт` : "—");
-
     const labelEl = document.getElementById("rating-label");
     const posEl = document.getElementById("rating-position");
     const tipEl = document.getElementById("rating-tip");
@@ -409,6 +739,16 @@ function renderHealth(ai, rating) {
         if (posEl) posEl.textContent = "— из —";
         if (tipEl) tipEl.textContent = "Заполни доход и категории — увидишь, как ты держишься среди других.";
     }
+
+    const openBtn = document.getElementById("open-ai-detail-btn");
+    if (openBtn) {
+        if (ai) {
+            openBtn.classList.remove("hidden");
+            refreshLucide();
+        } else {
+            openBtn.classList.add("hidden");
+        }
+    }
 }
 
 function renderTips(ai) {
@@ -418,9 +758,9 @@ function renderTips(ai) {
 
     if (ai && ai.insights && ai.insights.length) {
         list.innerHTML = ai.insights.slice(0, 3).map((t, i) => `<li>${i + 1}) ${escapeHtml(t)}</li>`).join("");
-        if (meta) meta.textContent = "из выписки";
+        if (meta) meta.textContent = "из всех возможных данных";
     } else {
-        list.innerHTML = '<li class="text-xs text-slate-500">Загрузи PDF-выписку — AI выделит, где можно сэкономить.</li>';
+        list.innerHTML = '<li class="text-xs text-slate-500">Здесь будет анализ на 30 дней!</li>';
         if (meta) meta.textContent = "не запускался";
     }
 }
@@ -434,12 +774,10 @@ function renderEmptyState() {
     setText("chip-expense", "0 ₽");
     setText("top-cat-name", "Нет данных");
     const tcl = document.getElementById("top-cat-list");
-    if (tcl) tcl.innerHTML = '<p class="text-xs text-slate-500">Заполни бюджет и загрузи PDF — здесь появятся топ траты.</p>';
+    if (tcl) tcl.innerHTML = '<p class="text-xs text-slate-500">Заполни бюджет — здесь появятся топ траты.</p>';
     const acl = document.getElementById("all-cats-list");
     if (acl) acl.innerHTML = '<p class="text-xs text-slate-500">Запусти AI-анализ выписки — категории появятся автоматически.</p>';
 }
-
-/* ─────────────────────────  БЮДЖЕТ-ЭДИТОР  ───────────────────────── */
 
 function renderBudgetEditor() {
     const editor = document.getElementById("budget-editor");
@@ -553,10 +891,19 @@ function bindBudgetEditor() {
     });
 }
 
+function isBudgetLocked() {
+    return document.body.classList.contains("budget-locked");
+}
+
 async function saveSalary() {
     const salaryInput = document.getElementById("budget-salary-input");
     if (!salaryInput || !dashState.monthId) return;
     if (!dashState.salaryDirty) return;
+    if (isBudgetLocked()) {
+        salaryInput.value = dashState.salary;
+        dashState.salaryDirty = false;
+        return;
+    }
 
     const value = Number(salaryInput.value || 0);
     if (Number.isNaN(value) || value < 0) {
@@ -584,6 +931,7 @@ async function handleCategoryFieldChange(e) {
     const target = e.target;
     if (!(target instanceof HTMLElement)) return;
     if (!target.matches(".budget-input[data-field], .budget-name-input[data-field]")) return;
+    if (isBudgetLocked()) return;
 
     const id = Number(target.dataset.id);
     const field = target.dataset.field;
@@ -624,6 +972,7 @@ async function handleCategoryFieldChange(e) {
 }
 
 async function handleCategoryDelete(idStr) {
+    if (isBudgetLocked()) return;
     const id = Number(idStr);
     if (!id) return;
     const cat = dashState.plannedCategories.find((c) => c.id === id);
@@ -639,6 +988,7 @@ async function handleCategoryDelete(idStr) {
 }
 
 async function handleCategoryCreate() {
+    if (isBudgetLocked()) return;
     const newForm = document.getElementById("new-category-form");
     const newName = document.getElementById("new-cat-name");
     const newAmount = document.getElementById("new-cat-amount");
@@ -671,8 +1021,6 @@ function setText(id, value) {
     if (el) el.textContent = value;
 }
 
-/* ─────────────────────────  RE-UPLOAD PDF  ───────────────────────── */
-
 function bindReupload() {
     const btn = document.getElementById("reupload-pdf-btn");
     if (!btn) return;
@@ -680,6 +1028,93 @@ function bindReupload() {
         if (btn.disabled) return;
         runBudgetAi();
     });
+}
+
+function bindEditSurvey() {
+    const btn = document.getElementById("edit-survey-btn");
+    if (!btn) return;
+    btn.addEventListener("click", handleEditSurvey);
+}
+
+function bindManageCredits() {
+    const btn = document.getElementById("manage-credits-btn");
+    if (!btn) return;
+    btn.addEventListener("click", () => {
+        if (typeof openCreditsOnlyModal === "function") {
+            openCreditsOnlyModal();
+        }
+    });
+}
+
+function bindAiDetailModal() {
+    const openBtn = document.getElementById("open-ai-detail-btn");
+    const modal = document.getElementById("ai-detail-modal");
+    const closeBtn = document.getElementById("ai-detail-close-btn");
+
+    if (openBtn) {
+        openBtn.addEventListener("click", openAiDetailModal);
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener("click", closeAiDetailModal);
+    }
+    if (modal) {
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) closeAiDetailModal();
+        });
+    }
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modal && modal.classList.contains("open")) {
+            closeAiDetailModal();
+        }
+    });
+}
+
+function openAiDetailModal() {
+    const modal = document.getElementById("ai-detail-modal");
+    const content = document.getElementById("ai-detail-content");
+    const ai = dashState.aiAnalysis;
+    if (!modal || !content || !ai) return;
+
+    if (typeof renderAiAnalysis === "function") {
+        renderAiAnalysis(content, ai, { compact: false });
+    }
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+    refreshLucide();
+}
+
+function closeAiDetailModal() {
+    const modal = document.getElementById("ai-detail-modal");
+    if (!modal) return;
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+}
+
+async function handleEditSurvey() {
+    const btn = document.getElementById("edit-survey-btn");
+    if (btn) btn.disabled = true;
+    try {
+        const data = await CashCareApi.getSurvey();
+        await openSurveyModal({
+            mandatory: false,
+            prefill: {
+                maritalStatus: data.maritalStatus,
+                childrenCount: data.childrenCount,
+                employmentType: data.employmentType,
+                housingStatus: data.housingStatus,
+                hasDebts: data.hasDebts,
+                financialGoal: data.financialGoal,
+                citySize: data.citySize,
+                spendingStyle: data.spendingStyle
+            }
+        });
+    } catch (err) {
+        showProfileAlert(err?.message || "Не удалось загрузить анкету");
+    } finally {
+        if (btn) btn.disabled = false;
+    }
 }
 
 async function runBudgetAi() {

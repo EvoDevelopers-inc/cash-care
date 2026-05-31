@@ -18,14 +18,44 @@
             }
         };
     </script>
-    <link rel="stylesheet" href="/css/dashboard.css?v=12">
-    <script src="/js/sdkClient.js?v=6" defer></script>
+    <link rel="stylesheet" href="/css/dashboard.css?v=29">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+    <script src="/js/sdkClient.js?v=8" defer></script>
     <script src="/js/common.js" defer></script>
-    <script src="/js/aiAnalysisUi.js?v=4" defer></script>
-    <script src="/js/initModal.js?v=7" defer></script>
-    <script src="/js/dashboard.js?v=20" defer></script>
+    <script src="/js/aiAnalysisUi.js?v=5" defer></script>
+    <script src="/js/initModal.js?v=10" defer></script>
+    <script src="/js/surveyModal.js?v=3" defer></script>
+    <script src="/js/goalsModal.js?v=4" defer></script>
+    <script src="/js/dashboard.js?v=31" defer></script>
 </head>
 <body class="min-h-screen font-sans text-slate-900">
+
+<!-- Tailwind safelist для динамических градиентов карточек целей (не удалять) -->
+<div class="hidden"
+     data-tw-safelist="goal-gradients"
+     aria-hidden="true">
+    <span class="bg-gradient-to-br from-slate-500 to-slate-700"></span>
+    <span class="bg-gradient-to-br from-amber-400 to-orange-500"></span>
+    <span class="bg-gradient-to-br from-amber-500 to-rose-500"></span>
+    <span class="bg-gradient-to-br from-sky-400 to-cyan-500"></span>
+    <span class="bg-gradient-to-br from-indigo-400 to-violet-500"></span>
+    <span class="bg-gradient-to-br from-zinc-500 to-slate-700"></span>
+    <span class="bg-gradient-to-br from-pink-300 to-rose-400"></span>
+    <span class="bg-gradient-to-br from-pink-400 to-fuchsia-400"></span>
+    <span class="bg-gradient-to-br from-emerald-500 to-teal-600"></span>
+    <span class="bg-gradient-to-br from-emerald-400 to-green-500"></span>
+    <span class="bg-gradient-to-br from-rose-400 to-red-500"></span>
+    <span class="bg-gradient-to-br from-rose-300 to-pink-400"></span>
+    <span class="bg-gradient-to-br from-orange-400 to-red-400"></span>
+    <span class="bg-gradient-to-br from-violet-400 to-fuchsia-500"></span>
+    <span class="bg-gradient-to-br from-amber-300 to-orange-400"></span>
+    <span class="bg-gradient-to-br from-teal-400 to-cyan-500"></span>
+    <span class="bg-gradient-to-br from-emerald-500 to-cyan-500"></span>
+    <span class="bg-gradient-to-br from-fuchsia-400 to-pink-500"></span>
+    <span class="bg-gradient-to-br from-amber-400 to-yellow-500"></span>
+    <span class="bg-gradient-to-br from-indigo-400 to-purple-500"></span>
+    <span class="bg-gradient-to-br from-slate-400 to-slate-600"></span>
+</div>
 
 <div class="relative min-h-screen px-4 py-5 lg:px-6">
     <div class="dashboard-grid mx-auto grid w-full max-w-[1200px] gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -47,6 +77,19 @@
                 <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Профиль</div>
                 <div id="profile-name" class="mt-1 truncate text-sm font-extrabold">—</div>
                 <div id="profile-email" class="truncate text-xs text-slate-500">—</div>
+                <button id="edit-survey-btn" type="button" class="sidebar-edit-survey mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[11px] font-bold text-indigo-700 transition hover:bg-indigo-100 hover:border-indigo-300">
+                    <i data-lucide="clipboard-pen" class="lc lc-xs"></i>
+                    <span>Изменить анкету</span>
+                </button>
+                <button id="manage-credits-btn" type="button" class="sidebar-edit-survey mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-white/60 px-2.5 py-1.5 text-[11px] font-bold text-indigo-700 transition hover:bg-indigo-50 hover:border-indigo-300">
+                    <i data-lucide="landmark" class="lc lc-xs"></i>
+                    <span>Кредиты и рассрочки</span>
+                </button>
+                <button id="open-goals-btn" type="button" class="sidebar-edit-survey mt-2 w-full inline-flex items-center justify-center gap-1.5 rounded-lg border border-fuchsia-200 bg-gradient-to-r from-fuchsia-50 to-violet-50 px-2.5 py-1.5 text-[11px] font-bold text-fuchsia-700 transition hover:from-fuchsia-100 hover:to-violet-100 hover:border-fuchsia-300">
+                    <i data-lucide="target" class="lc lc-xs"></i>
+                    <span>Трекер мечты</span>
+                    <span id="sidebar-goals-count" class="hidden inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-fuchsia-500 px-1 text-[9px] font-extrabold text-white">0</span>
+                </button>
             </div>
 
             <div class="sidebar-logout mt-auto pt-2">
@@ -63,22 +106,73 @@
             <div class="dash-header flex flex-wrap items-start justify-between gap-3">
                 <div class="min-w-0">
                     <h1 class="text-2xl font-extrabold tracking-tight">Статус</h1>
-                    <p class="text-sm text-slate-600">бюджет месяца и AI-анализ выписки</p>
+                    <p id="dash-subtitle" class="text-sm text-slate-600">бюджет месяца и AI-анализ выписки</p>
                 </div>
                 <div class="dash-header-actions flex gap-2">
-                    <button id="reupload-pdf-btn" type="button" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold transition">
-                        ↻ Обновить AI
+                    <button id="reupload-pdf-btn" type="button" class="btn-primary rounded-xl px-4 py-2 text-sm font-semibold transition inline-flex items-center gap-1.5">
+                        <i data-lucide="refresh-cw" class="lc lc-sm"></i>
+                        <span id="reupload-pdf-btn-label">Обновить AI</span>
                     </button>
                 </div>
             </div>
 
             <div id="profile-alert" class="alert alert-error"></div>
 
+            <!-- ai status banner -->
+            <section id="ai-status-banner" class="ai-status hidden">
+                <div class="ai-status-left">
+                    <div class="ai-status-month">
+                        <span class="ai-status-emoji">
+                            <i id="ai-status-icon" data-lucide="calendar" class="lc lc-lg"></i>
+                        </span>
+                        <div class="min-w-0">
+                            <div id="ai-status-title" class="ai-status-title">—</div>
+                            <div id="ai-status-meta" class="ai-status-meta">—</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="ai-status-right">
+                    <div id="ai-status-cta" class="ai-status-cta">—</div>
+                </div>
+            </section>
+
+            <!-- pdf onboarding (виден только если AI-анализа ещё не было) -->
+            <section id="pdf-onboard-card" class="hidden glass rounded-3xl p-5">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="pdf-onboard-icon">
+                        <i data-lucide="file-up" class="lc lc-lg"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="text-sm font-extrabold">Залей выписку Т-Банк PDF</h3>
+                        <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                            AI разберёт реальные траты, найдёт подписки и определит финансовый тип. Без выписки — только план месяца.
+                        </p>
+                    </div>
+                </div>
+
+                <label id="pdf-onboard-drop" for="pdf-onboard-input" class="pdf-onboard-drop">
+                    <input id="pdf-onboard-input" type="file" accept="application/pdf,.pdf" class="hidden">
+                    <div class="pdf-onboard-drop-inner">
+                        <i data-lucide="upload-cloud" class="lc lc-lg"></i>
+                        <div>
+                            <div id="pdf-onboard-label" class="text-sm font-bold">Выбрать PDF или перетащи сюда</div>
+                            <div class="text-[11px] text-slate-500 mt-0.5">До 10 МБ · только Т-Банк</div>
+                        </div>
+                    </div>
+                </label>
+
+                <div id="pdf-onboard-progress" class="hidden mt-3 text-xs text-indigo-700 font-semibold flex items-center gap-2">
+                    <i data-lucide="loader-2" class="lc lc-sm pdf-onboard-spin"></i>
+                    <span id="pdf-onboard-progress-text">AI анализирует выписку...</span>
+                </div>
+                <div id="pdf-onboard-error" class="hidden mt-3 text-xs text-rose-700 font-semibold"></div>
+            </section>
+
             <!-- balance card -->
             <section class="glass rounded-3xl p-6">
                 <div class="flex items-start justify-between gap-4">
                     <div class="min-w-0">
-                        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Баланс за месяц</div>
+                        <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Баланс на <span id="balance-month-label">—</span></div>
                         <div id="balance-amount" class="mt-1 text-4xl font-extrabold tracking-tight">— ₽</div>
                     </div>
                     <div class="flex flex-col items-end gap-2">
@@ -98,9 +192,9 @@
             </section>
 
             <!-- 2 cards: top categories + moneymood -->
-            <div class="grid gap-5 md:grid-cols-2">
+            <div class="grid gap-5 lg:grid-cols-2">
                 <section class="glass rounded-3xl p-5">
-                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Топ категории</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Топ категории на основе анализированных данных нейронкой</div>
                     <h2 id="top-cat-name" class="mt-1 text-2xl font-extrabold tracking-tight">—</h2>
                     <p class="text-xs text-slate-500">что сильнее всего влияет сейчас</p>
 
@@ -156,8 +250,14 @@
                     <div id="dist-row-free" class="dist-row">
                         <div class="dist-dot dist-dot-free"></div>
                         <div class="min-w-0 flex-1">
-                            <div class="dist-row-label">Свободно</div>
-                            <div class="dist-row-meta" title="буфер на спонтанные траты, ~2% дохода"><span id="dist-free-pct">0%</span> · <span id="dist-free-amount">0 ₽</span></div>
+                            <div class="dist-row-label flex items-center gap-1.5">
+                                Свободно
+                                <span id="dist-free-ai-badge" class="hidden ai-pocket-badge">
+                                    <i data-lucide="sparkles" class="lc lc-xs"></i>AI
+                                </span>
+                            </div>
+                            <div class="dist-row-meta"><span id="dist-free-pct">0%</span> · <span id="dist-free-amount">0 ₽</span></div>
+                            <div id="dist-free-reason" class="hidden mt-1 text-[11px] leading-snug text-slate-500"></div>
                         </div>
                     </div>
                 </div>
@@ -167,14 +267,49 @@
                 </p>
             </section>
 
+            <!-- ───── Goal teaser (виден на главной) ───── -->
+            <section id="goal-teaser" class="goal-teaser hidden glass rounded-3xl p-5">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-fuchsia-600">Трекер мечты</div>
+                        <h3 id="goal-teaser-title" class="text-lg font-extrabold tracking-tight">—</h3>
+                    </div>
+                    <button id="goal-teaser-open" type="button" class="rounded-xl border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-xs font-bold text-fuchsia-700 transition hover:bg-fuchsia-100">
+                        Все цели →
+                    </button>
+                </div>
+
+                <div id="goal-teaser-empty" class="hidden rounded-2xl border-2 border-dashed border-fuchsia-200 bg-fuchsia-50/40 p-5 text-center">
+                    <div class="text-3xl mb-2">🎯</div>
+                    <div class="text-sm font-extrabold mb-1">Поставь первую мечту</div>
+                    <p class="text-xs text-slate-600 mb-3">Машина, отпуск, переезд, гаджет — что угодно. Карточка будет проявляться из тумана по мере того, как ты откладываешь.</p>
+                    <button id="goal-teaser-add" type="button" class="rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-4 py-2 text-xs font-extrabold text-white shadow-md transition hover:shadow-lg">
+                        Создать цель
+                    </button>
+                </div>
+
+                <div id="goal-teaser-hint" class="goal-teaser-hint hidden"></div>
+                <div id="goal-teaser-card-host"></div>
+            </section>
+
             <!-- bottom: budget editor + health -->
-            <div class="grid gap-5 md:grid-cols-2">
+            <div class="grid gap-5 lg:grid-cols-2">
                 <section class="glass rounded-3xl p-5">
                     <div class="mb-1 flex items-center justify-between">
                         <h3 class="text-sm font-bold">Бюджет месяца</h3>
                         <button type="button" id="add-category-btn" class="btn-ghost rounded-lg px-3 py-1.5 text-xs font-bold transition">+ Добавить</button>
                     </div>
                     <p class="text-xs text-slate-500">Раз в месяц закидываешь абстрактные суммы — например, «квартирка 25к».</p>
+
+                    <div id="budget-lock-banner" class="hidden mt-3 rounded-2xl border border-indigo-200 bg-indigo-50/70 px-4 py-3">
+                        <div class="flex items-start gap-2.5">
+                            <i data-lucide="lock" class="lc lc-md text-indigo-700 mt-0.5 flex-shrink-0"></i>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-xs font-extrabold text-indigo-900">Бюджет заморожен на месяц</div>
+                                <div id="budget-lock-text" class="mt-0.5 text-xs leading-relaxed text-indigo-700">—</div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="budget-row budget-income mt-4">
                         <div>
@@ -222,18 +357,16 @@
 
                 <section class="glass rounded-3xl p-5 max-h-64">
                     <h3 class="text-sm font-bold">Финансовое здоровье</h3>
-                    <div class="mt-3 grid grid-cols-2 gap-3">
-                        <div class="glass-soft rounded-2xl p-3">
-                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Рейтинг</div>
-                            <div id="rating-label" class="mt-1 text-base font-extrabold leading-tight">—</div>
-                            <div id="rating-position" class="mt-0.5 text-[11px] font-semibold text-slate-500">— из —</div>
-                        </div>
-                        <div class="glass-soft rounded-2xl p-3">
-                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Подписки</div>
-                            <div id="health-subs" class="mt-1 text-lg font-extrabold">—</div>
-                        </div>
+                    <div class="mt-3 glass-soft rounded-2xl p-3">
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Рейтинг</div>
+                        <div id="rating-label" class="mt-1 text-base font-extrabold leading-tight">—</div>
+                        <div id="rating-position" class="mt-0.5 text-[11px] font-semibold text-slate-500">— из —</div>
                     </div>
                     <p id="rating-tip" class="mt-3 text-xs leading-relaxed text-slate-600">Заполни доход и категории — увидишь, как ты держишься среди других.</p>
+                    <button id="open-ai-detail-btn" type="button" class="hidden mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-500 to-fuchsia-500 px-3 py-2 text-xs font-extrabold text-white shadow-md transition hover:shadow-lg">
+                        <i data-lucide="sparkles" class="lc lc-sm"></i>
+                        Открыть AI-профиль
+                    </button>
                 </section>
             </div>
 
@@ -251,7 +384,7 @@
                     <span id="tips-meta" class="text-xs text-slate-500">из выписки</span>
                 </div>
                 <ol id="tips-list" class="mt-3 space-y-2 text-sm leading-relaxed text-slate-700">
-                    <li class="text-xs text-slate-500">Загрузи PDF-выписку — AI выделит, где можно сэкономить.</li>
+                    <li class="text-xs text-slate-500">Здесь будет анализ на 30 дней!</li>
                 </ol>
             </section>
         </main>
@@ -273,13 +406,14 @@
                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                     Настройка
                 </span>
-                <span id="init-step-counter" class="text-xs font-semibold text-slate-500">Шаг 1 из 3</span>
+                <span id="init-step-counter" class="text-xs font-semibold text-slate-500">Шаг 1 из 4</span>
             </div>
 
             <div class="mt-3 flex gap-1.5">
                 <div class="step-dot active" data-step="1"></div>
                 <div class="step-dot" data-step="2"></div>
                 <div class="step-dot" data-step="3"></div>
+                <div class="step-dot" data-step="4"></div>
             </div>
 
             <h2 id="init-modal-title" class="mt-4 text-xl font-extrabold tracking-tight">Доход</h2>
@@ -287,7 +421,7 @@
         </div>
 
         <!-- body -->
-        <form id="init-form" class="flex flex-1 flex-col overflow-hidden">
+        <form id="init-form" novalidate class="flex flex-1 flex-col overflow-hidden">
             <div class="flex-1 overflow-y-auto px-6 py-5">
 
             <!-- STEP 1: Доход -->
@@ -301,8 +435,9 @@
                     <input id="others-input" type="text" placeholder="фриланс, бонусы, ..." class="init-input">
                 </div>
 
-                <div class="rounded-2xl bg-emerald-50/70 p-4 text-xs leading-relaxed text-emerald-900">
-                    💡 Можешь указать примерные суммы — позже всё поправишь в кабинете.
+                <div class="rounded-2xl bg-emerald-50/70 p-4 text-xs leading-relaxed text-emerald-900 flex items-start gap-2">
+                    <i data-lucide="lightbulb" class="lc lc-sm flex-shrink-0 mt-0.5"></i>
+                    <span>Можешь указать примерные суммы — позже всё поправишь в кабинете.</span>
                 </div>
             </div>
 
@@ -323,15 +458,43 @@
                 </div>
             </div>
 
-            <!-- STEP 3: PDF + AI -->
-            <div id="init-step-3" class="init-step-panel hidden space-y-4">
+            <!-- STEP 3: Кредиты и рассрочки -->
+            <div id="init-step-3" class="init-step-panel hidden space-y-3">
+                <div class="rounded-2xl bg-indigo-50/70 p-3 text-xs leading-relaxed text-indigo-900 flex items-start gap-2">
+                    <i data-lucide="landmark" class="lc lc-sm flex-shrink-0 mt-0.5"></i>
+                    <span>AI оценит твою кредитную нагрузку (DTI), посоветует, что гасить первым, и не будет зря тебя мотивировать копить, пока висят дорогие долги.</span>
+                </div>
+
+                <div id="credits-container" class="space-y-2 max-h-[340px] overflow-y-auto pr-1"></div>
+
+                <button type="button" id="add-credit-btn" class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 py-2.5 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100">
+                    <i data-lucide="plus" class="lc lc-sm"></i>
+                    Добавить кредит / рассрочку
+                </button>
+
+                <div class="grid grid-cols-2 gap-3 rounded-2xl bg-slate-50 p-4 text-xs">
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Платёж/мес</div>
+                        <div id="credits-total-monthly" class="mt-1 text-base font-extrabold text-slate-900">0 ₽</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500">DTI</div>
+                        <div id="credits-dti" class="mt-1 text-base font-extrabold text-slate-900">—</div>
+                    </div>
+                </div>
+
+                <p class="text-[11px] text-slate-500">Шаг необязательный — если кредитов нет, просто пропусти.</p>
+            </div>
+
+            <!-- STEP 4: PDF + AI -->
+            <div id="init-step-4" class="init-step-panel hidden space-y-4">
                 <p class="text-sm leading-relaxed text-slate-600">
                     Загрузи PDF-выписку T-Bank, и AI разберёт траты, найдёт подписки и предложит новые категории.
                 </p>
 
                 <label class="file-drop-zone" for="statement-input">
                     <input id="statement-input" type="file" accept="application/pdf,.pdf">
-                    <span class="text-2xl">📄</span>
+                    <i data-lucide="file-up" class="lc lc-xl text-slate-500"></i>
                     <span class="text-sm font-bold">Выбери PDF или перетащи сюда</span>
                     <span id="statement-file-name" class="text-xs text-slate-500">Файл не выбран</span>
                 </label>
@@ -370,6 +533,246 @@
                         Далее →
                     </button>
                 </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ─────────────────────────  SURVEY MODAL  ───────────────────────── -->
+<div id="survey-modal" class="init-modal-overlay fixed inset-0 z-[60] items-center justify-center p-4 backdrop-blur-md" style="background: rgba(15, 23, 42, 0.65);" aria-hidden="true">
+    <div class="relative flex max-h-[92vh] w-full max-w-[640px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl transition-all">
+        <button type="button" id="survey-close-btn" class="survey-close hidden" aria-label="Закрыть">
+            <i data-lucide="x" class="lc lc-md"></i>
+        </button>
+        <div class="flex-shrink-0 border-b border-slate-100 px-6 pb-4 pt-6">
+            <div class="flex items-center justify-between mt-8">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                    <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                    Анкета
+                </span>
+                <span id="survey-step-counter" class="text-xs font-semibold text-slate-500">Вопрос 1 из 8</span>
+            </div>
+            <div id="survey-progress" class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <div id="survey-progress-fill" class="h-full bg-gradient-to-r from-indigo-400 to-indigo-600 transition-all duration-300" style="width: 12.5%"></div>
+            </div>
+            <h2 id="survey-title" class="mt-4 text-xl font-extrabold tracking-tight">Расскажи о себе</h2>
+            <p id="survey-subtitle" class="mt-1 text-sm text-slate-600">Чтобы AI понимал твою ситуацию и давал советы под тебя, а не «в среднем по больнице»</p>
+        </div>
+
+        <form id="survey-form" class="flex flex-1 flex-col overflow-hidden">
+            <div id="survey-body" class="flex-1 overflow-y-auto px-6 py-5 space-y-3"></div>
+
+            <div id="survey-alert" class="alert mx-6"></div>
+
+            <div class="flex flex-shrink-0 items-center justify-between border-t border-slate-100 bg-white px-6 py-4">
+                <button type="button" id="survey-back-btn" class="invisible text-sm font-semibold text-slate-500 transition hover:text-slate-900">
+                    ← Назад
+                </button>
+                <button type="submit" id="survey-next-btn" class="rounded-xl bg-indigo-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/30 transition hover:bg-indigo-600 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50">
+                    Далее →
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ───── AI Profile Detail Modal ───── -->
+<div id="ai-detail-modal" class="init-modal-overlay fixed inset-0 z-[55] items-center justify-center p-4 backdrop-blur-md" style="background: rgba(15, 23, 42, 0.55);" aria-hidden="true">
+    <div class="relative flex max-h-[92vh] w-full max-w-[640px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div class="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                    <i data-lucide="sparkles" class="lc lc-xs"></i>
+                    AI-профиль
+                </span>
+                <h2 class="mt-2 text-xl font-extrabold tracking-tight">Анализ выписки</h2>
+                <p class="text-xs text-slate-500">Из последнего PDF-анализа · обновляется раз в месяц</p>
+            </div>
+            <button type="button" id="ai-detail-close-btn" class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+                <i data-lucide="x" class="lc lc-md"></i>
+            </button>
+        </div>
+        <div id="ai-detail-content" class="flex-1 overflow-y-auto px-6 py-5"></div>
+    </div>
+</div>
+
+<!-- ───── Goals Tab Modal (full list of dreams) ───── -->
+<div id="goals-modal" class="init-modal-overlay fixed inset-0 z-[55] items-center justify-center p-4 backdrop-blur-md" style="background: rgba(15, 23, 42, 0.6);" aria-hidden="true">
+    <div class="relative flex max-h-[92vh] w-full max-w-[920px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div class="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div class="min-w-0">
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-fuchsia-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">
+                    <i data-lucide="target" class="lc lc-xs"></i>
+                    Трекер мечты
+                </span>
+                <h2 class="mt-2 text-xl font-extrabold tracking-tight">Цели и накопления</h2>
+                <p class="text-xs text-slate-500">Нажимай «Я отложил» — и мечта проявится из тумана</p>
+            </div>
+            <button type="button" id="goals-close-btn" class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+                <i data-lucide="x" class="lc lc-md"></i>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-6 py-5">
+            <!-- summary strip -->
+            <div id="goals-summary" class="mb-4 grid grid-cols-3 gap-3 rounded-2xl bg-gradient-to-r from-fuchsia-50 to-violet-50 p-4 text-xs">
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">Целей</div>
+                    <div id="goals-stat-count" class="mt-0.5 text-base font-extrabold text-fuchsia-900">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">Отложено</div>
+                    <div id="goals-stat-saved" class="mt-0.5 text-base font-extrabold text-fuchsia-900">0 ₽</div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">Осталось</div>
+                    <div id="goals-stat-remaining" class="mt-0.5 text-base font-extrabold text-fuchsia-900">—</div>
+                </div>
+            </div>
+
+            <!-- empty state -->
+            <div id="goals-empty" class="hidden rounded-3xl border-2 border-dashed border-fuchsia-200 bg-fuchsia-50/40 p-8 text-center">
+                <div class="text-5xl mb-3">🌫️</div>
+                <h3 class="text-lg font-extrabold mb-1">Тут пока туман</h3>
+                <p class="text-sm text-slate-600 mb-4 max-w-sm mx-auto">Создай первую мечту — машина, отпуск, гаджет. Каждый раз, когда отложишь, цель будет становиться чётче.</p>
+                <button id="goals-empty-add-btn" type="button" class="rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-5 py-2.5 text-sm font-extrabold text-white shadow-lg transition hover:shadow-xl">
+                    Создать цель
+                </button>
+            </div>
+
+            <!-- goals grid -->
+            <div id="goals-grid" class="goals-grid"></div>
+        </div>
+
+        <!-- footer with add btn -->
+        <div class="flex flex-shrink-0 items-center justify-between border-t border-slate-100 bg-white px-6 py-3">
+            <span id="goals-footer-hint" class="text-[11px] text-slate-500">Лимит — 20 целей</span>
+            <button id="goals-add-btn" type="button" class="rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-4 py-2 text-sm font-bold text-white shadow-md transition hover:shadow-lg inline-flex items-center gap-1.5">
+                <i data-lucide="plus" class="lc lc-sm"></i>
+                Новая цель
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ───── Goal Edit Modal (create / edit) ───── -->
+<div id="goal-edit-modal" class="init-modal-overlay fixed inset-0 z-[60] items-center justify-center p-4 backdrop-blur-md" style="background: rgba(15, 23, 42, 0.7);" aria-hidden="true">
+    <div class="relative flex max-h-[92vh] w-full max-w-[560px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div class="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-fuchsia-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-fuchsia-700">
+                    <i data-lucide="sparkles" class="lc lc-xs"></i>
+                    <span id="goal-edit-badge">Новая цель</span>
+                </span>
+                <h2 id="goal-edit-title" class="mt-2 text-xl font-extrabold tracking-tight">О чём мечтаешь?</h2>
+            </div>
+            <button type="button" id="goal-edit-close-btn" class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+                <i data-lucide="x" class="lc lc-md"></i>
+            </button>
+        </div>
+
+        <form id="goal-edit-form" class="flex flex-1 flex-col overflow-hidden" novalidate>
+            <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Название</label>
+                    <input id="goal-input-title" type="text" maxlength="80" placeholder="Например: машина мечты" class="init-input">
+                </div>
+
+                <div>
+                    <label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">Категория</label>
+                    <div id="goal-category-grid" class="goal-cat-grid"></div>
+                </div>
+
+                <div id="goal-custom-emoji-row" class="hidden">
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Эмодзи цели</label>
+                    <input id="goal-input-emoji" type="text" maxlength="4" placeholder="⭐" class="init-input text-center text-2xl" style="max-width: 120px;">
+                    <p class="mt-1 text-[11px] text-slate-500">Один любой эмодзи — он будет «лицом» твоей мечты.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Сколько копим</label>
+                        <div class="relative">
+                            <input id="goal-input-target" type="number" min="0" step="1000" placeholder="500000" class="init-input pr-8">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">₽</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Уже есть <span class="font-normal text-slate-400">— необязательно</span></label>
+                        <div class="relative">
+                            <input id="goal-input-saved" type="number" min="0" step="1000" placeholder="0" class="init-input pr-8">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">₽</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="rounded-2xl bg-fuchsia-50/60 p-3 text-xs leading-relaxed text-fuchsia-900 flex items-start gap-2">
+                    <i data-lucide="info" class="lc lc-sm flex-shrink-0 mt-0.5"></i>
+                    <span>Идеология: каждый раз, когда отложишь — заходишь сюда и нажимаешь «Я отложил». Чем ближе к цели, тем чётче картинка.</span>
+                </div>
+
+                <div id="goal-edit-alert" class="alert"></div>
+            </div>
+
+            <div class="flex flex-shrink-0 items-center justify-between border-t border-slate-100 bg-white px-6 py-4">
+                <button type="button" id="goal-edit-delete-btn" class="hidden text-sm font-semibold text-rose-600 transition hover:text-rose-800 inline-flex items-center gap-1">
+                    <i data-lucide="trash-2" class="lc lc-sm"></i>
+                    Удалить цель
+                </button>
+                <div class="flex items-center gap-2 ml-auto">
+                    <button type="button" id="goal-edit-cancel-btn" class="text-sm font-semibold text-slate-500 transition hover:text-slate-900">Отмена</button>
+                    <button type="submit" id="goal-edit-submit-btn" class="rounded-xl bg-gradient-to-r from-fuchsia-500 to-violet-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg transition hover:shadow-xl active:scale-[0.99]">
+                        Сохранить
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ───── Goal Contribute Modal («Я отложил») ───── -->
+<div id="goal-contribute-modal" class="init-modal-overlay fixed inset-0 z-[60] items-center justify-center p-4 backdrop-blur-md" style="background: rgba(15, 23, 42, 0.7);" aria-hidden="true">
+    <div class="relative flex w-full max-w-[420px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+            <div>
+                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                    <i data-lucide="piggy-bank" class="lc lc-xs"></i>
+                    Я отложил
+                </span>
+                <h2 id="goal-contribute-title" class="mt-2 text-lg font-extrabold tracking-tight">—</h2>
+                <p id="goal-contribute-meta" class="text-xs text-slate-500">—</p>
+            </div>
+            <button type="button" id="goal-contribute-close-btn" class="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+                <i data-lucide="x" class="lc lc-md"></i>
+            </button>
+        </div>
+
+        <form id="goal-contribute-form" class="flex flex-col" novalidate>
+            <div class="px-6 py-5 space-y-4">
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Сколько откладываешь</label>
+                    <div class="relative">
+                        <input id="goal-contribute-amount" type="number" min="0" step="500" placeholder="5000" class="init-input pr-8 text-2xl font-extrabold">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-base text-slate-400">₽</span>
+                    </div>
+                    <div id="goal-contribute-free-tip" class="hidden mt-2 inline-flex items-center gap-1.5 rounded-xl bg-fuchsia-50 px-3 py-2 text-[11px] leading-snug text-fuchsia-800"></div>
+                    <div id="goal-contribute-quick" class="mt-2 flex flex-wrap gap-1.5"></div>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Заметка <span class="font-normal text-slate-400">— необязательно</span></label>
+                    <input id="goal-contribute-note" type="text" maxlength="200" placeholder="например: премия за месяц" class="init-input">
+                </div>
+
+                <div id="goal-contribute-alert" class="alert"></div>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-100 bg-white px-6 py-4">
+                <button type="button" id="goal-contribute-cancel-btn" class="text-sm font-semibold text-slate-500 transition hover:text-slate-900">Отмена</button>
+                <button type="submit" id="goal-contribute-submit-btn" class="rounded-xl bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-600 active:scale-[0.99] inline-flex items-center gap-1.5">
+                    <i data-lucide="check" class="lc lc-sm"></i>
+                    Отложил!
+                </button>
             </div>
         </form>
     </div>

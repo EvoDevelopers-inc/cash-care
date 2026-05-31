@@ -120,6 +120,54 @@ const CashCareApi = {
         return this.request("GET", "/api/finances/monthly/init/setup", undefined, true);
     },
 
+    async getSurvey() {
+        return this.request("GET", "/api/user/survey", undefined, true);
+    },
+
+    async saveSurvey(payload) {
+        return this.request("POST", "/api/user/survey", payload, true);
+    },
+
+    async getCredits() {
+        return this.request("GET", "/api/credits", undefined, true);
+    },
+
+    async createCredit(payload) {
+        return this.request("POST", "/api/credits", payload, true);
+    },
+
+    async updateCredit(id, payload) {
+        return this.request("PUT", `/api/credits/${id}`, payload, true);
+    },
+
+    async deleteCredit(id) {
+        return this.request("DELETE", `/api/credits/${id}`, undefined, true);
+    },
+
+    async bulkSaveCredits(items) {
+        return this.request("POST", "/api/credits/bulk", items || [], true);
+    },
+
+    async getGoals() {
+        return this.request("GET", "/api/goals", undefined, true);
+    },
+
+    async createGoal(payload) {
+        return this.request("POST", "/api/goals", payload, true);
+    },
+
+    async updateGoal(id, payload) {
+        return this.request("PUT", `/api/goals/${id}`, payload, true);
+    },
+
+    async deleteGoal(id) {
+        return this.request("DELETE", `/api/goals/${id}`, undefined, true);
+    },
+
+    async contributeGoal(id, payload) {
+        return this.request("POST", `/api/goals/${id}/contribute`, payload, true);
+    },
+
     async submitInit(data) {
         return this.request("POST", "/api/finances/monthly/init", data, true);
     },

@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -23,11 +24,12 @@ public class RegisterUserService {
     private final PasswordEncoder passwordEncoder;
     private final FinancesService financesService;
 
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void create(String email, String username, String firstName, String lastName, String password, int age, Gender gender)
             throws BaseException {
 
-        validateInput(username, password);
+        validateInput(email, username, password);
+        validateUniqueness(email, username);
 
         UserEntity user = new UserEntity();
         user.setEmail(email);
@@ -39,31 +41,50 @@ public class RegisterUserService {
         user.setHashPassword(passwordEncoder.encode(password));
         user.setInit(false);
 
-        saveUser(user);
-        financesService.setupDefaultFinancesForUser(user);
-    }
-
-    public void saveUser(UserEntity user) throws ValidInputException {
-
         try {
             userRepository.save(user);
         } catch (DataIntegrityViolationException e) {
-            log.error("User with email {} already exists", user.getEmail());
-            throw new ValidInputException("Email or username is already taken", List.of("email is taken!", "password is taken!"));
+            log.warn("Race condition on register: {} / {}", email, username);
+            throw new ValidInputException(
+                    "Такой email или логин уже зарегистрирован",
+                    List.of("email or username is taken")
+            );
+        }
+
+        financesService.setupDefaultFinancesForUser(user);
+    }
+
+    private void validateUniqueness(String email, String username) throws ValidInputException {
+        List<String> details = new ArrayList<>();
+        if (userRepository.existsByEmail(email)) {
+            details.add("email уже зарегистрирован");
+        }
+        if (userRepository.existsByUsername(username)) {
+            details.add("логин уже занят");
+        }
+        if (!details.isEmpty()) {
+            String head = details.size() == 2
+                    ? "Email и логин уже заняты"
+                    : (details.get(0).startsWith("email") ? "Email уже зарегистрирован" : "Логин уже занят");
+            throw new ValidInputException(head, details);
         }
     }
 
-    public void validateInput(String username, String password) throws ValidInputException {
-        if (username.length() < 5) {
-            throw new ValidInputException("The username is too short, please write at least 6 characters.",
-                    List.of("username is too short"));
+    private void validateInput(String email, String username, String password) throws ValidInputException {
+        if (email == null || email.isBlank()) {
+            throw new ValidInputException("Укажи email", List.of("email is empty"));
         }
-
-        if (password.length() < 6) {
-            throw new ValidInputException("The password is too short, please write at least 6 characters.",
-                    List.of("password is too short"));
-
+        if (username == null || username.length() < 5) {
+            throw new ValidInputException(
+                    "Логин слишком короткий — минимум 5 символов",
+                    List.of("username is too short")
+            );
+        }
+        if (password == null || password.length() < 6) {
+            throw new ValidInputException(
+                    "Пароль слишком короткий — минимум 6 символов",
+                    List.of("password is too short")
+            );
         }
     }
-
 }

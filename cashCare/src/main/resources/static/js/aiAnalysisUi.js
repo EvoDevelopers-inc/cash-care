@@ -1,11 +1,44 @@
 const AI_ANALYSIS_KEY = "cashcare.aiAnalysis.v2";
 
 const PERSONALITY_THEME = {
-    "Контролер":   { emoji: "🎯", grad: "from-emerald-400 to-cyan-400", chip: "bg-emerald-100 text-emerald-700" },
-    "Расточитель": { emoji: "💸", grad: "from-rose-400 to-orange-400",   chip: "bg-rose-100 text-rose-700"     },
-    "Пофигист":    { emoji: "🌫️", grad: "from-slate-400 to-slate-500",   chip: "bg-slate-100 text-slate-700"   },
-    "Достигатор":  { emoji: "🚀", grad: "from-violet-400 to-fuchsia-400", chip: "bg-violet-100 text-violet-700" }
+    "Хранитель":        { moods: { happy: "😊", neutral: "🙂", sad: "😟" }, base: "happy",   grad: "from-emerald-400 to-cyan-400",   chip: "bg-emerald-100 text-emerald-700", tagline: "под контролем" },
+    "Целеустремлённый": { moods: { happy: "🚀", neutral: "💪", sad: "😣" }, base: "happy",   grad: "from-violet-400 to-fuchsia-400", chip: "bg-violet-100 text-violet-700",   tagline: "идёшь к цели" },
+    "Импульсивный":     { moods: { happy: "🙃", neutral: "😬", sad: "😤" }, base: "sad",     grad: "from-rose-400 to-orange-400",    chip: "bg-rose-100 text-rose-700",       tagline: "много спонтанных трат" },
+    "Растерянный":      { moods: { happy: "🙂", neutral: "😕", sad: "😢" }, base: "sad",     grad: "from-slate-400 to-slate-500",    chip: "bg-slate-100 text-slate-700",     tagline: "разберёмся вместе" }
 };
+
+const PERSONALITY_ALIASES = {
+    "Контролер":   "Хранитель",
+    "Контроллер":  "Хранитель",
+    "Расточитель": "Импульсивный",
+    "Пофигист":    "Растерянный",
+    "Достигатор":  "Целеустремлённый"
+};
+
+function resolvePersonality(name) {
+    if (!name) return "Растерянный";
+    if (PERSONALITY_THEME[name]) return name;
+    return PERSONALITY_ALIASES[name] || "Растерянный";
+}
+
+function pickMood(meta) {
+    const expense = Number(meta.expense) || 0;
+    const income  = Number(meta.income)  || 0;
+    if (income <= 0) return "neutral";
+    const ratio = expense / income;
+    if (ratio >= 1.05) return "sad";
+    if (ratio >= 0.9)  return "neutral";
+    return "happy";
+}
+
+function pickPersonalityEmoji(theme, meta) {
+    const mood = pickMood(meta);
+    if (theme.base === "sad") {
+        if (mood === "happy")   return theme.moods.neutral;
+        return theme.moods[mood] || theme.moods.sad;
+    }
+    return theme.moods[mood] || theme.moods[theme.base];
+}
 
 function aiField(obj, camelKey, snakeKey) {
     if (!obj) return undefined;
@@ -71,7 +104,9 @@ function clearStoredAiAnalysis() {
 }
 
 function buildHeroBlock(meta) {
-    const theme = PERSONALITY_THEME[meta.personality] || PERSONALITY_THEME["Пофигист"];
+    const personality = resolvePersonality(meta.personality);
+    const theme = PERSONALITY_THEME[personality];
+    const emoji = pickPersonalityEmoji(theme, meta);
     return `
         <div class="rounded-2xl bg-gradient-to-br ${theme.grad} p-5 text-white shadow-lg">
             <div class="mb-3 flex items-center justify-between">
@@ -82,10 +117,10 @@ function buildHeroBlock(meta) {
                 <span class="text-xs opacity-80">${meta.periodStart} — ${meta.periodEnd}</span>
             </div>
             <div class="flex items-center gap-3">
-                <div class="text-4xl">${theme.emoji}</div>
+                <div class="text-4xl leading-none transition-transform duration-300 hover:scale-110" title="${personality}">${emoji}</div>
                 <div>
-                    <div class="text-2xl font-extrabold leading-tight">${meta.personality}</div>
-                    <div class="text-xs opacity-90">${meta.currency} · профиль трат</div>
+                    <div class="text-2xl font-extrabold leading-tight">${personality}</div>
+                    <div class="text-xs opacity-90">${theme.tagline}</div>
                 </div>
             </div>
             <p class="mt-3 text-sm leading-relaxed opacity-95">${meta.reasoning}</p>

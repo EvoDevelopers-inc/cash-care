@@ -46,6 +46,7 @@ public class FinancesService {
     private final MonthlyFinancesRepository monthlyFinancesRepository;
     private final CategoryRepository categoryRepository;
     private final ExpenseRepository expenseRepository;
+    private final BudgetLockService budgetLockService;
     private static final Map<String, String> AI_CATEGORY_ALIASES = Map.ofEntries(
             Map.entry("продукты", "еда"),
             Map.entry("продукты питания", "еда"),
@@ -169,6 +170,8 @@ public class FinancesService {
     @Transactional
     public MonthlyFinancesResponse updateMonthlyFinances(String username, Long id, UpdateMonthlyFinancesRequest request)
             throws BaseException {
+        budgetLockService.assertUnlocked(username);
+
         MonthlyFinances monthlyFinances = getOwnedMonthlyFinances(username, id);
 
         if (request.getYear() != null) {
@@ -210,7 +213,8 @@ public class FinancesService {
 
 
     @Transactional
-    public CategoryResponse createCategory(String username, CreateCategoryRequest request) throws NotFoundException {
+    public CategoryResponse createCategory(String username, CreateCategoryRequest request) throws BaseException {
+        budgetLockService.assertUnlocked(username);
         return createCategory(
                 username,
                 request.getMonthlyFinancesId(),
@@ -392,7 +396,8 @@ public class FinancesService {
 
     @Transactional
     public CategoryResponse updateCategory(String username, Long id, UpdateCategoryRequest request)
-            throws NotFoundException {
+            throws BaseException {
+        budgetLockService.assertUnlocked(username);
         CategoryEntity category = getOwnedCategory(username, id);
 
         if (request.getNameCategory() != null && !request.getNameCategory().isBlank()) {
@@ -409,7 +414,8 @@ public class FinancesService {
     }
 
     @Transactional
-    public void deleteCategory(String username, Long id) throws NotFoundException {
+    public void deleteCategory(String username, Long id) throws BaseException {
+        budgetLockService.assertUnlocked(username);
         CategoryEntity category = getOwnedCategory(username, id);
         categoryRepository.delete(category);
     }

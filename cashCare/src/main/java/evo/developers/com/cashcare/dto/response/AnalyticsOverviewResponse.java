@@ -27,6 +27,7 @@ public class AnalyticsOverviewResponse extends Response {
         private String lastName;
         private String email;
         private boolean init;
+        private boolean surveyCompleted;
     }
 
     @Getter
